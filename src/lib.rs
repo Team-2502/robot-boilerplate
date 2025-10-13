@@ -1,5 +1,5 @@
-mod auto;
-mod subsystems;
-mod swerve;
-mod constants;
-mod input;
+pub mod auto;
+pub mod subsystems;
+pub mod swerve;
+pub mod constants;
+pub mod input;

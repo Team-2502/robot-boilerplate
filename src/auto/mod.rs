@@ -1,2 +1,2 @@
-mod auto;
-mod path;
+pub mod auto;
+pub mod path;

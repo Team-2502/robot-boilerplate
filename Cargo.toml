@@ -5,3 +5,5 @@ edition = "2024"
 
 [dependencies]
 frcrs = "0.1.4"
+nalgebra = "0.34.1"
+tokio = "1.47.1"

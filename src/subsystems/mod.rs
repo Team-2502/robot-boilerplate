@@ -1,1 +1,1 @@
-mod drivetrain;
+pub mod drivetrain;
