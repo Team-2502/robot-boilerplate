@@ -1,3 +1,4 @@
 fn main() {
-    println!("Hello, world!");
+    println!("LOADED: PROJECT-NAME-HERE");
+
 }
