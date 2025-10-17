@@ -1,5 +1,5 @@
 use std::f64::consts::PI;
-use nalgebra::{Rotation, Rotation2, Vector2};
+use nalgebra::{Rotation2, Vector2};
 
 /// ## Kinematics is a structure that stores vectors representing a swerve module's rotation unit vector.
 /// The magnitude represents the speed of the module, and the direction of the vector represents the angle.
@@ -39,7 +39,7 @@ impl Kinematics {
     /// ## Given x, y, and rotation input from driver station, return a Vec<(f64, f64)> representing swerve module setpoints.
     /// Vec(1) = FL, 2 = BL, 3 = BR, 4 = FR.
     /// First f64 represents speed, second f64 represents angle in RADIANS, wrapped from -PI to PI.
-    pub fn calculate_targets(&self, x: f64, y: f64, input_rotation: f64) -> Vec<(f64, f64)> {
+    fn calculate_targets(&self, x: f64, y: f64, input_rotation: f64) -> Vec<(f64, f64)> {
         let target_transformation = Vector2::new(x, y);
         let mut module_setpoints: Vec<(f64, f64)> = Vec::new();
 
@@ -58,6 +58,25 @@ impl Kinematics {
 
         module_setpoints
     }
+
+    pub fn scale_targets(&self, mut targets: Vec<(f64, f64)>) -> Vec<(f64, f64)> {
+        let mut scaled_targets: Vec<(f64, f64)> = Vec::new();
+        let mut max = 0.0;
+        println!("targets: {:?}", targets);
+        for target in targets.clone() {
+            if target.0 > max {
+                max = target.0;
+            }
+        }
+        if max > 1.0 {
+            for mut target in targets {
+                let scaled = target.0 / max;
+                scaled_targets.push((scaled, target.1));
+            }
+        }
+        println!("targets scaled: {:?}", scaled_targets);
+        scaled_targets
+    }
 }
 
 
@@ -71,10 +90,22 @@ mod kinematics_tests {
     use super::*;
 
     #[test]
+    fn scale_targets_test() {
+        let kinematics = Kinematics::new();
+        let target = kinematics.calculate_targets(1.0, 1.0, 1.0);
+        println!("targets: {:?}", target);
+        let target = kinematics.scale_targets(target);
+        println!("scaled targets: {:?}", target);
+
+        assert_eq!(target[3].0, 1.0);
+
+    }
+
+    #[test]
     fn kinematics_new_test() {
         let results = Kinematics::new();
 
-        // these seemingly random numbers are coordinates on the unit circle, specifically sqrt2/2 = 0.707..
+        // these seemingly random numbers are coordinates on the unit circle, specifically sqrt2/2 = 0.707...
         let expected = vec![
             vector![-0.7071067811865475, 0.7071067811865475],
             vector![-0.7071067811865475, -0.7071067811865475],
