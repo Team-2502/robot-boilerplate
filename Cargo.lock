@@ -1243,6 +1243,7 @@ version = "0.1.0"
 dependencies = [
  "frcrs",
  "nalgebra 0.34.1",
+ "serde",
  "serde_json",
  "tokio",
  "uom",
