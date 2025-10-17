@@ -5,7 +5,4 @@ pub mod subsystems;
 pub mod swerve;
 
 #[derive(Clone)]
-pub struct Ferris {
-
-}
-
+pub struct Ferris {}

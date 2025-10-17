@@ -1,7 +1,7 @@
+use crate::Ferris;
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::rc::Rc;
-use serde::{Deserialize, Serialize};
-use crate::Ferris;
 
 #[derive(Serialize, Deserialize)]
 pub enum Auto {
@@ -24,9 +24,7 @@ impl Auto {
     }
 
     pub fn iterator() -> Vec<Self> {
-        vec![
-            Auto::Nothing,
-        ]
+        vec![Auto::Nothing]
     }
 
     pub fn names() -> Vec<String> {
@@ -35,7 +33,7 @@ impl Auto {
             .map(|a| a.name().to_owned())
             .collect()
     }
-    
+
     pub async fn run_auto<'a>(ferris: Rc<RefCell<Ferris>>, chosen: Auto) {
         match chosen {
             Auto::Nothing => {
