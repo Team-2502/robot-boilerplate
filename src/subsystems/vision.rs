@@ -1,5 +1,5 @@
-use frcrs::limelight::{Limelight, LimelightResults};
 use crate::constants::vision;
+use frcrs::limelight::{Limelight, LimelightResults};
 use nalgebra::{Quaternion, Rotation2, Vector2, Vector3};
 use serde_json::Value;
 use uom::num::FromPrimitive;
@@ -11,7 +11,8 @@ use uom::si::{
 };
 
 use crate::constants::pose_estimation::{
-    LIMELIGHT_BASE_FOM, LIMELIGHT_INACCURACY_PER_ANGULAR_VELOCITY, LIMELIGHT_INACCURACY_PER_LINEAR_VELOCITY,
+    LIMELIGHT_BASE_FOM, LIMELIGHT_INACCURACY_PER_ANGULAR_VELOCITY,
+    LIMELIGHT_INACCURACY_PER_LINEAR_VELOCITY,
 };
 //not implemented yet
 //use crate::swerve::odometry::PoseEstimate;
@@ -66,7 +67,10 @@ impl Vision {
         self.drivetrain_angle = dt_angle;
         self.last_update_time = Instant::now();
 
-        if !self.results.Fiducial.is_empty() && self.results.Fiducial[0].fID != -1 && self.results.Fiducial[0].fID != self.saved_id {
+        if !self.results.Fiducial.is_empty()
+            && self.results.Fiducial[0].fID != -1
+            && self.results.Fiducial[0].fID != self.saved_id
+        {
             self.saved_id = self.results.Fiducial[0].fID;
         }
     }

@@ -1,5 +1,5 @@
-use std::f64::consts::PI;
 use nalgebra::{Rotation2, Vector2};
+use std::f64::consts::PI;
 use uom::si::angle::radian;
 use uom::si::f64::Angle;
 
@@ -21,14 +21,14 @@ impl Kinematics {
         // vectors pointing to each module from center of robot.
         // convention is FL, BL, BR, FR
         let module_vectors: Vec<Vector2<f64>> = vec![
-            Vector2::new(half_length, half_width), //   FL
-            Vector2::new(-half_length, half_width), //  BL
+            Vector2::new(half_length, half_width),   //   FL
+            Vector2::new(-half_length, half_width),  //  BL
             Vector2::new(-half_length, -half_width), // BR
-            Vector2::new(half_length, -half_width), //  FR
+            Vector2::new(half_length, -half_width),  //  FR
         ];
 
         // rotate each vector by 90 degrees and normalize. This will give us the rotation unit vectors.
-        let mut final_vectors:Vec<Vector2<f64>> = Vec::new();
+        let mut final_vectors: Vec<Vector2<f64>> = Vec::new();
         let ninety_degree_rotation = Rotation2::new(PI / 2.0);
         for mut vector in module_vectors {
             vector = ninety_degree_rotation * vector;
@@ -36,7 +36,9 @@ impl Kinematics {
             final_vectors.push(vector);
         }
 
-        Kinematics { module_rotation_unit_vectors: final_vectors }
+        Kinematics {
+            module_rotation_unit_vectors: final_vectors,
+        }
     }
 
     /// ## Given x, y, and rotation input from driver station, return a Vec<(f64, Angle)> representing swerve module setpoints.
@@ -90,15 +92,14 @@ impl Kinematics {
     }
 }
 
-
 // run tests with
 //      cargo test -- --nocapture
 // to show prints even for successful tests.
 // by default, rust will capture (delete) output (for our context, println!) from successful tests. --nocapture prevents that.
 #[cfg(test)]
 mod kinematics_tests {
-    use nalgebra::vector;
     use super::*;
+    use nalgebra::vector;
 
     #[test]
     fn scale_targets_test() {
@@ -134,12 +135,7 @@ mod kinematics_tests {
         let kinematics = Kinematics::new();
 
         let results = kinematics.calculate_targets(1.0, 0.0, 0.0);
-        let expected: Vec<(f64, f64)> = vec![
-            (1.0, 0.0),
-            (1.0, 0.0),
-            (1.0, 0.0),
-            (1.0, 0.0),
-        ];
+        let expected: Vec<(f64, f64)> = vec![(1.0, 0.0), (1.0, 0.0), (1.0, 0.0), (1.0, 0.0)];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
         assert_eq!(expected, results);
@@ -151,12 +147,7 @@ mod kinematics_tests {
         let kinematics = Kinematics::new();
 
         let results = kinematics.calculate_targets(0.5, 0.0, 0.0);
-        let expected: Vec<(f64, f64)> = vec![
-            (0.5, 0.0),
-            (0.5, 0.0),
-            (0.5, 0.0),
-            (0.5, 0.0),
-        ];
+        let expected: Vec<(f64, f64)> = vec![(0.5, 0.0), (0.5, 0.0), (0.5, 0.0), (0.5, 0.0)];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
         assert_eq!(expected, results);
@@ -168,12 +159,7 @@ mod kinematics_tests {
         let kinematics = Kinematics::new();
 
         let results = kinematics.calculate_targets(-1.0, 0.0, 0.0);
-        let expected: Vec<(f64, f64)> = vec![
-            (1.0, PI),
-            (1.0, PI),
-            (1.0, PI),
-            (1.0, PI),
-        ];
+        let expected: Vec<(f64, f64)> = vec![(1.0, PI), (1.0, PI), (1.0, PI), (1.0, PI)];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
         assert_eq!(expected, results);
@@ -185,12 +171,7 @@ mod kinematics_tests {
         let kinematics = Kinematics::new();
 
         let results = kinematics.calculate_targets(-0.5, 0.0, 0.0);
-        let expected: Vec<(f64, f64)> = vec![
-            (0.5, PI),
-            (0.5, PI),
-            (0.5, PI),
-            (0.5, PI),
-        ];
+        let expected: Vec<(f64, f64)> = vec![(0.5, PI), (0.5, PI), (0.5, PI), (0.5, PI)];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
         assert_eq!(expected, results);
@@ -203,10 +184,10 @@ mod kinematics_tests {
 
         let results = kinematics.calculate_targets(0.0, 1.0, 0.0);
         let expected: Vec<(f64, f64)> = vec![
-            (1.0, PI/2.0),
-            (1.0, PI/2.0),
-            (1.0, PI/2.0),
-            (1.0, PI/2.0),
+            (1.0, PI / 2.0),
+            (1.0, PI / 2.0),
+            (1.0, PI / 2.0),
+            (1.0, PI / 2.0),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
@@ -220,10 +201,10 @@ mod kinematics_tests {
 
         let results = kinematics.calculate_targets(0.0, 0.5, 0.0);
         let expected: Vec<(f64, f64)> = vec![
-            (0.5, PI/2.0),
-            (0.5, PI/2.0),
-            (0.5, PI/2.0),
-            (0.5, PI/2.0),
+            (0.5, PI / 2.0),
+            (0.5, PI / 2.0),
+            (0.5, PI / 2.0),
+            (0.5, PI / 2.0),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
@@ -237,10 +218,10 @@ mod kinematics_tests {
 
         let results = kinematics.calculate_targets(0.0, -1.0, 0.0);
         let expected: Vec<(f64, f64)> = vec![
-            (1.0, PI/-2.0),
-            (1.0, PI/-2.0),
-            (1.0, PI/-2.0),
-            (1.0, PI/-2.0),
+            (1.0, PI / -2.0),
+            (1.0, PI / -2.0),
+            (1.0, PI / -2.0),
+            (1.0, PI / -2.0),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
@@ -254,10 +235,10 @@ mod kinematics_tests {
 
         let results = kinematics.calculate_targets(0.0, -0.5, 0.0);
         let expected: Vec<(f64, f64)> = vec![
-            (0.5, PI/-2.0),
-            (0.5, PI/-2.0),
-            (0.5, PI/-2.0),
-            (0.5, PI/-2.0),
+            (0.5, PI / -2.0),
+            (0.5, PI / -2.0),
+            (0.5, PI / -2.0),
+            (0.5, PI / -2.0),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
@@ -272,10 +253,10 @@ mod kinematics_tests {
         let results = kinematics.calculate_targets(0.0, 0.0, 1.0);
         // floating point operations means 1.0 becomes 0.9999999999
         let expected: Vec<(f64, f64)> = vec![
-            (0.9999999999999999, (3.0*PI)/4.0),
-            (0.9999999999999999, (-3.0*PI)/4.0),
-            (0.9999999999999999, -PI/4.0),
-            (0.9999999999999999, PI/4.0),
+            (0.9999999999999999, (3.0 * PI) / 4.0),
+            (0.9999999999999999, (-3.0 * PI) / 4.0),
+            (0.9999999999999999, -PI / 4.0),
+            (0.9999999999999999, PI / 4.0),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
@@ -290,10 +271,10 @@ mod kinematics_tests {
         let results = kinematics.calculate_targets(0.0, 0.0, 0.5);
         // floating point operations means 0.5 becomes 0.49999999999999994
         let expected: Vec<(f64, f64)> = vec![
-            (0.49999999999999994, (3.0*PI)/4.0),
-            (0.49999999999999994, (-3.0*PI)/4.0),
-            (0.49999999999999994, -PI/4.0),
-            (0.49999999999999994, PI/4.0),
+            (0.49999999999999994, (3.0 * PI) / 4.0),
+            (0.49999999999999994, (-3.0 * PI) / 4.0),
+            (0.49999999999999994, -PI / 4.0),
+            (0.49999999999999994, PI / 4.0),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
@@ -308,10 +289,10 @@ mod kinematics_tests {
         let results = kinematics.calculate_targets(0.0, 0.0, -1.0);
         // floating point operations means 1.0 becomes 0.9999999999
         let expected: Vec<(f64, f64)> = vec![
-            (0.9999999999999999, -PI/4.0),
-            (0.9999999999999999, PI/4.0),
-            (0.9999999999999999, (3.0*PI)/4.0),
-            (0.9999999999999999, (-3.0*PI)/4.0),
+            (0.9999999999999999, -PI / 4.0),
+            (0.9999999999999999, PI / 4.0),
+            (0.9999999999999999, (3.0 * PI) / 4.0),
+            (0.9999999999999999, (-3.0 * PI) / 4.0),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
@@ -326,14 +307,13 @@ mod kinematics_tests {
         let results = kinematics.calculate_targets(0.0, 0.0, -0.5);
         // floating point operations means 0.5 becomes 0.49999999999999994
         let expected: Vec<(f64, f64)> = vec![
-            (0.49999999999999994, -PI/4.0),
-            (0.49999999999999994, PI/4.0),
-            (0.49999999999999994, (3.0*PI)/4.0),
-            (0.49999999999999994, (-3.0*PI)/4.0),
+            (0.49999999999999994, -PI / 4.0),
+            (0.49999999999999994, PI / 4.0),
+            (0.49999999999999994, (3.0 * PI) / 4.0),
+            (0.49999999999999994, (-3.0 * PI) / 4.0),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
         assert_eq!(expected, results);
     }
-
 }
