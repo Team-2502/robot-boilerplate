@@ -135,7 +135,12 @@ mod kinematics_tests {
         let kinematics = Kinematics::new();
 
         let results = kinematics.calculate_targets(1.0, 0.0, 0.0);
-        let expected: Vec<(f64, f64)> = vec![(1.0, 0.0), (1.0, 0.0), (1.0, 0.0), (1.0, 0.0)];
+        let expected: Vec<(f64, Angle)> = vec![
+            (1.0, Angle::new::<radian>(0.0)),
+            (1.0, Angle::new::<radian>(0.0)),
+            (1.0, Angle::new::<radian>(0.0)),
+            (1.0, Angle::new::<radian>(0.0)),
+        ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
         assert_eq!(expected, results);
@@ -147,7 +152,12 @@ mod kinematics_tests {
         let kinematics = Kinematics::new();
 
         let results = kinematics.calculate_targets(0.5, 0.0, 0.0);
-        let expected: Vec<(f64, f64)> = vec![(0.5, 0.0), (0.5, 0.0), (0.5, 0.0), (0.5, 0.0)];
+        let expected: Vec<(f64, Angle)> = vec![
+            (0.5, Angle::new::<radian>(0.0)),
+            (0.5, Angle::new::<radian>(0.0)),
+            (0.5, Angle::new::<radian>(0.0)),
+            (0.5, Angle::new::<radian>(0.0)),
+        ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
         assert_eq!(expected, results);
@@ -159,7 +169,12 @@ mod kinematics_tests {
         let kinematics = Kinematics::new();
 
         let results = kinematics.calculate_targets(-1.0, 0.0, 0.0);
-        let expected: Vec<(f64, f64)> = vec![(1.0, PI), (1.0, PI), (1.0, PI), (1.0, PI)];
+        let expected: Vec<(f64, Angle)> = vec![
+            (1.0, Angle::new::<radian>(PI)),
+            (1.0, Angle::new::<radian>(PI)),
+            (1.0, Angle::new::<radian>(PI)),
+            (1.0, Angle::new::<radian>(PI)),
+        ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
         assert_eq!(expected, results);
@@ -171,7 +186,12 @@ mod kinematics_tests {
         let kinematics = Kinematics::new();
 
         let results = kinematics.calculate_targets(-0.5, 0.0, 0.0);
-        let expected: Vec<(f64, f64)> = vec![(0.5, PI), (0.5, PI), (0.5, PI), (0.5, PI)];
+        let expected: Vec<(f64, Angle)> = vec![
+            (0.5, Angle::new::<radian>(PI)),
+            (0.5, Angle::new::<radian>(PI)),
+            (0.5, Angle::new::<radian>(PI)),
+            (0.5, Angle::new::<radian>(PI)),
+        ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
         assert_eq!(expected, results);
@@ -183,11 +203,11 @@ mod kinematics_tests {
         let kinematics = Kinematics::new();
 
         let results = kinematics.calculate_targets(0.0, 1.0, 0.0);
-        let expected: Vec<(f64, f64)> = vec![
-            (1.0, PI / 2.0),
-            (1.0, PI / 2.0),
-            (1.0, PI / 2.0),
-            (1.0, PI / 2.0),
+        let expected: Vec<(f64, Angle)> = vec![
+            (1.0, Angle::new::<radian>(PI / 2.0)),
+            (1.0, Angle::new::<radian>(PI / 2.0)),
+            (1.0, Angle::new::<radian>(PI / 2.0)),
+            (1.0, Angle::new::<radian>(PI / 2.0)),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
@@ -200,11 +220,11 @@ mod kinematics_tests {
         let kinematics = Kinematics::new();
 
         let results = kinematics.calculate_targets(0.0, 0.5, 0.0);
-        let expected: Vec<(f64, f64)> = vec![
-            (0.5, PI / 2.0),
-            (0.5, PI / 2.0),
-            (0.5, PI / 2.0),
-            (0.5, PI / 2.0),
+        let expected: Vec<(f64, Angle)> = vec![
+            (0.5, Angle::new::<radian>(PI / 2.0)),
+            (0.5, Angle::new::<radian>(PI / 2.0)),
+            (0.5, Angle::new::<radian>(PI / 2.0)),
+            (0.5, Angle::new::<radian>(PI / 2.0)),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
@@ -217,11 +237,11 @@ mod kinematics_tests {
         let kinematics = Kinematics::new();
 
         let results = kinematics.calculate_targets(0.0, -1.0, 0.0);
-        let expected: Vec<(f64, f64)> = vec![
-            (1.0, PI / -2.0),
-            (1.0, PI / -2.0),
-            (1.0, PI / -2.0),
-            (1.0, PI / -2.0),
+        let expected: Vec<(f64, Angle)> = vec![
+            (1.0, Angle::new::<radian>(PI / -2.0)),
+            (1.0, Angle::new::<radian>(PI / -2.0)),
+            (1.0, Angle::new::<radian>(PI / -2.0)),
+            (1.0, Angle::new::<radian>(PI / -2.0)),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
@@ -234,11 +254,11 @@ mod kinematics_tests {
         let kinematics = Kinematics::new();
 
         let results = kinematics.calculate_targets(0.0, -0.5, 0.0);
-        let expected: Vec<(f64, f64)> = vec![
-            (0.5, PI / -2.0),
-            (0.5, PI / -2.0),
-            (0.5, PI / -2.0),
-            (0.5, PI / -2.0),
+        let expected: Vec<(f64, Angle)> = vec![
+            (0.5, Angle::new::<radian>(PI / -2.0)),
+            (0.5, Angle::new::<radian>(PI / -2.0)),
+            (0.5, Angle::new::<radian>(PI / -2.0)),
+            (0.5, Angle::new::<radian>(PI / -2.0)),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
@@ -252,11 +272,11 @@ mod kinematics_tests {
 
         let results = kinematics.calculate_targets(0.0, 0.0, 1.0);
         // floating point operations means 1.0 becomes 0.9999999999
-        let expected: Vec<(f64, f64)> = vec![
-            (0.9999999999999999, (3.0 * PI) / 4.0),
-            (0.9999999999999999, (-3.0 * PI) / 4.0),
-            (0.9999999999999999, -PI / 4.0),
-            (0.9999999999999999, PI / 4.0),
+        let expected: Vec<(f64, Angle)> = vec![
+            (0.9999999999999999, Angle::new::<radian>(3.0 * PI / 4.0)),
+            (0.9999999999999999, Angle::new::<radian>(-3.0 * PI / 4.0)),
+            (0.9999999999999999, Angle::new::<radian>(-PI / 4.0)),
+            (0.9999999999999999, Angle::new::<radian>(PI / 4.0)),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
@@ -270,11 +290,11 @@ mod kinematics_tests {
 
         let results = kinematics.calculate_targets(0.0, 0.0, 0.5);
         // floating point operations means 0.5 becomes 0.49999999999999994
-        let expected: Vec<(f64, f64)> = vec![
-            (0.49999999999999994, (3.0 * PI) / 4.0),
-            (0.49999999999999994, (-3.0 * PI) / 4.0),
-            (0.49999999999999994, -PI / 4.0),
-            (0.49999999999999994, PI / 4.0),
+        let expected: Vec<(f64, Angle)> = vec![
+            (0.49999999999999994, Angle::new::<radian>(3.0 * PI / 4.0)),
+            (0.49999999999999994, Angle::new::<radian>(-3.0 * PI / 4.0)),
+            (0.49999999999999994, Angle::new::<radian>(-PI / 4.0)),
+            (0.49999999999999994, Angle::new::<radian>(PI / 4.0)),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
@@ -288,11 +308,11 @@ mod kinematics_tests {
 
         let results = kinematics.calculate_targets(0.0, 0.0, -1.0);
         // floating point operations means 1.0 becomes 0.9999999999
-        let expected: Vec<(f64, f64)> = vec![
-            (0.9999999999999999, -PI / 4.0),
-            (0.9999999999999999, PI / 4.0),
-            (0.9999999999999999, (3.0 * PI) / 4.0),
-            (0.9999999999999999, (-3.0 * PI) / 4.0),
+        let expected: Vec<(f64, Angle)> = vec![
+            (0.9999999999999999, Angle::new::<radian>(-PI / 4.0)),
+            (0.9999999999999999, Angle::new::<radian>(PI / 4.0)),
+            (0.9999999999999999, Angle::new::<radian>(3.0 * PI / 4.0)),
+            (0.9999999999999999, Angle::new::<radian>(-3.0 * PI / 4.0)),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
@@ -306,11 +326,11 @@ mod kinematics_tests {
 
         let results = kinematics.calculate_targets(0.0, 0.0, -0.5);
         // floating point operations means 0.5 becomes 0.49999999999999994
-        let expected: Vec<(f64, f64)> = vec![
-            (0.49999999999999994, -PI / 4.0),
-            (0.49999999999999994, PI / 4.0),
-            (0.49999999999999994, (3.0 * PI) / 4.0),
-            (0.49999999999999994, (-3.0 * PI) / 4.0),
+        let expected: Vec<(f64, Angle)> = vec![
+            (0.49999999999999994, Angle::new::<radian>(-PI / 4.0)),
+            (0.49999999999999994, Angle::new::<radian>(PI / 4.0)),
+            (0.49999999999999994, Angle::new::<radian>(3.0 * PI / 4.0)),
+            (0.49999999999999994, Angle::new::<radian>(-3.0 * PI / 4.0)),
         ];
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
