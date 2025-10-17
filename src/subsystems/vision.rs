@@ -79,7 +79,6 @@ impl Vision {
                 self.saved_id = self.results.Fiducial[0].fID;
             }
         }
-
     }
 
     /// gets the targeted tag's angle from the limelight's equator as of the last update
