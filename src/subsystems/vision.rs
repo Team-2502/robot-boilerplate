@@ -1,9 +1,5 @@
 use frcrs::limelight::{Limelight, LimelightResults};
-use std::f64::consts::PI;
-use std::fs::File;
-
 use crate::constants::vision;
-use frcrs::telemetry::Telemetry;
 use nalgebra::{Quaternion, Rotation2, Vector2, Vector3};
 use serde_json::Value;
 use uom::num::FromPrimitive;
@@ -15,15 +11,11 @@ use uom::si::{
 };
 
 use crate::constants::pose_estimation::{
-    LIMELIGHT_BASE_FOM, LIMELIGHT_INACCURACY_PER_ANGULAR_VELOCITY,
-    LIMELIGHT_INACCURACY_PER_DEGREE_TX, LIMELIGHT_INACCURACY_PER_LINEAR_VELOCITY,
+    LIMELIGHT_BASE_FOM, LIMELIGHT_INACCURACY_PER_ANGULAR_VELOCITY, LIMELIGHT_INACCURACY_PER_LINEAR_VELOCITY,
 };
 //not implemented yet
 //use crate::swerve::odometry::PoseEstimate;
-use frcrs::alliance_station;
-use std::net::SocketAddr;
 use tokio::time::Instant;
-use uom::num_traits::real::Real;
 
 #[derive(Clone)]
 /// The vision struct containing
@@ -74,10 +66,8 @@ impl Vision {
         self.drivetrain_angle = dt_angle;
         self.last_update_time = Instant::now();
 
-        if !self.results.Fiducial.is_empty() {
-            if self.results.Fiducial[0].fID != -1 && self.results.Fiducial[0].fID != self.saved_id {
-                self.saved_id = self.results.Fiducial[0].fID;
-            }
+        if !self.results.Fiducial.is_empty() && self.results.Fiducial[0].fID != -1 && self.results.Fiducial[0].fID != self.saved_id {
+            self.saved_id = self.results.Fiducial[0].fID;
         }
 
     }
@@ -136,7 +126,7 @@ impl Vision {
                 );
                 let mut dist =
                     Length::new::<inch>(height_diff) / f64::tan(pitch_to_tag.get::<radian>());
-                dist += (dist * vision::TX_FUDGE_FACTOR * self.get_tx().get::<degree>().abs());
+                dist += dist * vision::TX_FUDGE_FACTOR * self.get_tx().get::<degree>().abs();
                 Some(dist)
             }
             None => None,

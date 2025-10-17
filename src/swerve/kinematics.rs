@@ -1,9 +1,12 @@
 use std::f64::consts::PI;
 use nalgebra::{Rotation2, Vector2};
+use uom::si::angle::radian;
+use uom::si::f64::Angle;
 
 /// ## Kinematics is a structure that stores vectors representing a swerve module's rotation unit vector.
 /// The magnitude represents the speed of the module, and the direction of the vector represents the angle.
 /// While the rotation vectors are constant, we don't want to calculate them each frame, and syntax like drivetrain.kinematics.calculate_targets is intuitive.
+#[allow(unused)]
 pub struct Kinematics {
     module_rotation_unit_vectors: Vec<Vector2<f64>>,
 }
@@ -17,7 +20,7 @@ impl Kinematics {
 
         // vectors pointing to each module from center of robot.
         // convention is FL, BL, BR, FR
-        let mut module_vectors: Vec<Vector2<f64>> = vec![
+        let module_vectors: Vec<Vector2<f64>> = vec![
             Vector2::new(half_length, half_width), //   FL
             Vector2::new(-half_length, half_width), //  BL
             Vector2::new(-half_length, -half_width), // BR
@@ -26,7 +29,7 @@ impl Kinematics {
 
         // rotate each vector by 90 degrees and normalize. This will give us the rotation unit vectors.
         let mut final_vectors:Vec<Vector2<f64>> = Vec::new();
-        let ninety_degree_rotation = Rotation2::new(f64::from(PI / 2.0));
+        let ninety_degree_rotation = Rotation2::new(PI / 2.0);
         for mut vector in module_vectors {
             vector = ninety_degree_rotation * vector;
             vector = vector.normalize();
@@ -36,31 +39,31 @@ impl Kinematics {
         Kinematics { module_rotation_unit_vectors: final_vectors }
     }
 
-    /// ## Given x, y, and rotation input from driver station, return a Vec<(f64, f64)> representing swerve module setpoints.
+    /// ## Given x, y, and rotation input from driver station, return a Vec<(f64, Angle)> representing swerve module setpoints.
     /// Vec(1) = FL, 2 = BL, 3 = BR, 4 = FR.
-    /// First f64 represents speed, second f64 represents angle in RADIANS, wrapped from -PI to PI.
-    fn calculate_targets(&self, x: f64, y: f64, input_rotation: f64) -> Vec<(f64, f64)> {
+    /// f64 represents speed setpoint, Angle represents swerve angle setpoint wrapped from -PI to PI.
+    fn calculate_targets(&self, x: f64, y: f64, input_rotation: f64) -> Vec<(f64, Angle)> {
         let target_transformation = Vector2::new(x, y);
-        let mut module_setpoints: Vec<(f64, f64)> = Vec::new();
+        let mut module_setpoints: Vec<(f64, Angle)> = Vec::new();
 
-        for mut rotation_unit_vector in &self.module_rotation_unit_vectors.clone() {
+        for rotation_unit_vector in &self.module_rotation_unit_vectors.clone() {
             // scale each rotation unit vector by the rotation amount.
             let rotation_vector = rotation_unit_vector.clone() * input_rotation;
 
             // add the scaled rotation vector to the target transformation vector in order to get the final vector.
-            let mut final_vector = target_transformation + rotation_vector;
-            final_vector = final_vector;
+            let final_vector = target_transformation + rotation_vector;
 
             // do some trig to figure out angle of final vector in radians
-            let final_angle = f64::atan2(final_vector.y, final_vector.x);
+            let final_angle = Angle::new::<radian>(f64::atan2(final_vector.y, final_vector.x));
             module_setpoints.push((final_vector.magnitude(), final_angle));
         }
 
         module_setpoints
     }
 
-    pub fn scale_targets(&self, mut targets: Vec<(f64, f64)>) -> Vec<(f64, f64)> {
-        let mut scaled_targets: Vec<(f64, f64)> = Vec::new();
+    /// ## Scales the speed setpoints to be from -1 to 1.
+    fn scale_targets(&self, targets: Vec<(f64, Angle)>) -> Vec<(f64, Angle)> {
+        let mut scaled_targets: Vec<(f64, Angle)> = Vec::new();
         let mut max = 0.0;
         println!("targets: {:?}", targets);
         for target in targets.clone() {
@@ -69,13 +72,21 @@ impl Kinematics {
             }
         }
         if max > 1.0 {
-            for mut target in targets {
+            for target in targets {
                 let scaled = target.0 / max;
                 scaled_targets.push((scaled, target.1));
             }
         }
         println!("targets scaled: {:?}", scaled_targets);
         scaled_targets
+    }
+
+    /// ## Returns swerve setpoints given driver station input.
+    /// Positive rotation = clockwise.
+    pub fn get_targets(&self, x: f64, y: f64, rotation: f64) -> Vec<(f64, Angle)> {
+        let mut targets = self.calculate_targets(x, y, rotation);
+        targets = self.scale_targets(targets);
+        targets
     }
 }
 
@@ -98,7 +109,6 @@ mod kinematics_tests {
         println!("scaled targets: {:?}", target);
 
         assert_eq!(target[3].0, 1.0);
-
     }
 
     #[test]
