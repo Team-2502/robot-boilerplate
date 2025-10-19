@@ -1,7 +1,8 @@
 use frcrs::ctre::{CanCoder, Pigeon, Talon};
+use uom::si::angle::degree;
 use crate::swerve::kinematics::Kinematics;
 use crate::constants::robotmap::drivetrain_map::{BL_DRIVE_ID, BL_TURN_ID, BR_DRIVE_ID, BR_ENCODER_ID, DRIVETRAIN_CANBUS, FL_DRIVE_ID, FL_ENCODER_ID, FL_TURN_ID, FR_DRIVE_ID, FR_ENCODER_ID, FR_TURN_ID, GYRO_ID};
-
+use uom::si::f64::Angle;
 
 /// Drivetrain struct.
 /// kinematics field interfaces with inverse kinematics functions.
@@ -32,12 +33,18 @@ pub struct Drivetrain {
 impl Drivetrain {
     /// Returns a new Drivetrain. CAN IDs and CanBus set in constants::robotmap::drivetrain_map
     pub fn new() -> Drivetrain {
-
-
+        // .get_absolute returns the CANCoder's rotation from -1 to 1
+        let motor_encoder_offsets = [
+            Angle::new::<degree>(fl_encoder.get_absolute() * 360.0),
+            Angle::new::<degree>(bl_encoder.get_absolute() * 360.0),
+            Angle::new::<degree>(br_encoder.get_absolute() * 360.0),
+            Angle::new::<degree>(fr_encoder.get_absolute() * 360.0),
+        ];
 
         Drivetrain {
             kinematics: Kinematics::new(),
             gyro: Pigeon::new(GYRO_ID, DRIVETRAIN_CANBUS),
+            motor_encoder_offsets,
 
             fl_encoder: CanCoder::new(FL_ENCODER_ID, DRIVETRAIN_CANBUS),
             fl_drive: Talon::new(FL_DRIVE_ID, DRIVETRAIN_CANBUS),
