@@ -5,6 +5,29 @@ pub mod config {
     pub const WHEELBASE_LENGTH_INCHES: f64 = 10.0;
 }
 
+pub mod robotmap {
+    pub mod drivetrain_map {
+        pub const GYRO_ID: i32 = 0;
+        pub const DRIVETRAIN_CANBUS: Option<String> = None;
+
+        pub const FL_ENCODER_ID: i32 = 0;
+        pub const FL_DRIVE_ID: i32 = 0;
+        pub const FL_TURN_ID: i32 = 0;
+
+        pub const BL_ENCODER_ID: i32 = 0;
+        pub const BL_DRIVE_ID: i32 = 0;
+        pub const BL_TURN_ID: i32 = 0;
+
+        pub const BR_ENCODER_ID: i32 = 0;
+        pub const BR_DRIVE_ID: i32 = 0;
+        pub const BR_TURN_ID: i32 = 0;
+
+        pub const FR_ENCODER_ID: i32 = 0;
+        pub const FR_DRIVE_ID: i32 = 0;
+        pub const FR_TURN_ID: i32 = 0;
+    }
+}
+
 pub mod vision {
     use nalgebra::Vector2;
 

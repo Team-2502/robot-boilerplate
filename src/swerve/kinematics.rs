@@ -102,17 +102,6 @@ mod kinematics_tests {
     use nalgebra::vector;
 
     #[test]
-    fn scale_targets_test() {
-        let kinematics = Kinematics::new();
-        let target = kinematics.calculate_targets(1.0, 1.0, 1.0);
-        println!("targets: {:?}", target);
-        let target = kinematics.scale_targets(target);
-        println!("scaled targets: {:?}", target);
-
-        assert_eq!(target[3].0, 1.0);
-    }
-
-    #[test]
     fn kinematics_new_test() {
         let results = Kinematics::new();
 
@@ -335,5 +324,16 @@ mod kinematics_tests {
         println!("expected: {:?}", expected);
         println!("results: {:?}", results);
         assert_eq!(expected, results);
+    }
+
+    #[test]
+    fn scale_targets_test() {
+        let kinematics = Kinematics::new();
+        let target = kinematics.calculate_targets(1.0, 1.0, 1.0);
+        println!("targets: {:?}", target);
+        let target = kinematics.scale_targets(target);
+        println!("scaled targets: {:?}", target);
+
+        assert_eq!(target[3].0, 1.0);
     }
 }
