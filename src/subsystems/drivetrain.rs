@@ -75,19 +75,6 @@ impl Drivetrain {
         }
     }
 
-    /// Control the drivetrain.
-    /// x, y, and rotation are driverstation inputs.
-    pub fn control_drivetrain(&self, x: f64, y: f64, rotation: f64) {
-        let target_transformation = match config::FIELD_ORIENTED {
-            true => self.field_orientate(vector![x, y]),
-            false => vector![x, y],
-        };
-
-        let mut targets = self.kinematics.get_targets(target_transformation, rotation);
-        // TODO: IMPL TARGETS.OPTIMIZE (AHHHHHHHHHHHHHHHHHHHHHHHHHH)
-        // TODO: IMPL SETSPEEDS
-    }
-
     /// Stops the drivetrain.
     pub fn stop(&self) {
         self.fl_drive.stop();
@@ -113,5 +100,44 @@ impl Drivetrain {
     /// This function rotates the driver's field orientated input to be robot oriented but the same direction.
     fn field_orientate(&self, target_transformation: Vector2<f64>) -> Vector2<f64> {
         Rotation2::new(-self.gyro.get_angle()) * target_transformation
+    }
+
+    /// Optimizes the setpoints.
+    /// For example, instead of turning to 135 degrees from 0 degrees, turn to -45 degrees and invert speed.
+    fn optimize_setpoints(&self, setpoints: Vec<(f64, Angle)>) -> Vec<(f64, Angle)> {
+        // get angles, account for non-zero starting angle
+        let mut measured_angles = vec![
+            Angle::new::<revolution>(self.fl_turn.get_position()) + self.motor_encoder_offsets[0],
+            Angle::new::<revolution>(self.bl_turn.get_position()) + self.motor_encoder_offsets[1],
+            Angle::new::<revolution>(self.br_turn.get_position()) + self.motor_encoder_offsets[2],
+            Angle::new::<revolution>(self.fr_turn.get_position()) + self.motor_encoder_offsets[3],
+        ];
+
+        measured_angles.iter().map(|angle| {
+            let mut angle_value = angle.get::<degree>();
+            angle_value = angle_value % 360.0;
+            Angle::new::<degree>(angle_value)
+        });
+
+        setpoints.iter().map(|tuple| {
+            let mut angle_value = tuple.1.get::<degree>();
+            angle_value = angle_value % 360.0;
+            (tuple.0, Angle::new::<degree>(angle_value))
+        });
+
+        for
+    }
+
+    /// Control the drivetrain.
+    /// x, y, and rotation are driverstation inputs.
+    pub fn control_drivetrain(&self, x: f64, y: f64, rotation: f64) {
+        let target_transformation = match config::FIELD_ORIENTED {
+            true => self.field_orientate(vector![x, y]),
+            false => vector![x, y],
+        };
+
+        let mut targets = self.kinematics.get_targets(target_transformation, rotation);
+        // TODO: IMPL TARGETS.OPTIMIZE (AHHHHHHHHHHHHHHHHHHHHHHHHHH)
+        // TODO: IMPL SETSPEEDS
     }
 }
