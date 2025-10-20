@@ -1,11 +1,11 @@
+use crate::constants::config;
 use crate::constants::robotmap::drivetrain_map::{
     BL_DRIVE_ID, BL_ENCODER_ID, BL_TURN_ID, BR_DRIVE_ID, BR_ENCODER_ID, DRIVETRAIN_CANBUS,
     FL_DRIVE_ID, FL_ENCODER_ID, FL_TURN_ID, FR_DRIVE_ID, FR_ENCODER_ID, FR_TURN_ID, GYRO_ID,
 };
-use crate::constants::config;
 use crate::swerve::kinematics::Kinematics;
 use frcrs::ctre::{CanCoder, Pigeon, Talon};
-use nalgebra::{vector, Rotation2, Vector2};
+use nalgebra::{Rotation2, Vector2, vector};
 use uom::si::angle::{degree, revolution};
 use uom::si::f64::Angle;
 

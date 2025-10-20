@@ -47,7 +47,11 @@ impl Kinematics {
     /// The target_transformation vector is a vector comprised of the x and y input from the driver station.
     /// Returned vector follows swerve module order: Vec(1) = FL, 2 = BL, 3 = BR, 4 = FR.
     /// Returned vector f64 represents speed setpoint and the Angle represents swerve angle setpoint wrapped from -PI to PI.
-    fn calculate_targets(&self, target_transformation: Vector2<f64>, input_rotation: f64) -> Vec<(f64, Angle)> {
+    fn calculate_targets(
+        &self,
+        target_transformation: Vector2<f64>,
+        input_rotation: f64,
+    ) -> Vec<(f64, Angle)> {
         let mut module_setpoints: Vec<(f64, Angle)> = Vec::new();
 
         for rotation_unit_vector in &self.module_rotation_unit_vectors.clone() {
@@ -88,7 +92,11 @@ impl Kinematics {
 
     /// ## Returns swerve setpoints given driver station input.
     /// Positive rotation = clockwise.
-    pub fn get_targets(&self, target_transformation: Vector2<f64>, rotation: f64) -> Vec<(f64, Angle)> {
+    pub fn get_targets(
+        &self,
+        target_transformation: Vector2<f64>,
+        rotation: f64,
+    ) -> Vec<(f64, Angle)> {
         let mut targets = self.calculate_targets(target_transformation, rotation);
         targets = self.scale_targets(targets);
         targets
