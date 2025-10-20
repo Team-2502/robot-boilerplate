@@ -2,9 +2,11 @@ use crate::constants::robotmap::drivetrain_map::{
     BL_DRIVE_ID, BL_ENCODER_ID, BL_TURN_ID, BR_DRIVE_ID, BR_ENCODER_ID, DRIVETRAIN_CANBUS,
     FL_DRIVE_ID, FL_ENCODER_ID, FL_TURN_ID, FR_DRIVE_ID, FR_ENCODER_ID, FR_TURN_ID, GYRO_ID,
 };
+use crate::constants::config;
 use crate::swerve::kinematics::Kinematics;
 use frcrs::ctre::{CanCoder, Pigeon, Talon};
-use uom::si::angle::degree;
+use nalgebra::{vector, Rotation2, Vector2};
+use uom::si::angle::{degree, revolution};
 use uom::si::f64::Angle;
 
 /// Drivetrain struct.
@@ -44,10 +46,10 @@ impl Drivetrain {
 
         // .get_absolute returns the CANCoder's rotation from -1 to 1
         let motor_encoder_offsets = [
-            Angle::new::<degree>(fl_encoder.get_absolute() * 360.0),
-            Angle::new::<degree>(bl_encoder.get_absolute() * 360.0),
-            Angle::new::<degree>(br_encoder.get_absolute() * 360.0),
-            Angle::new::<degree>(fr_encoder.get_absolute() * 360.0),
+            Angle::new::<revolution>(fl_encoder.get_absolute()),
+            Angle::new::<revolution>(bl_encoder.get_absolute()),
+            Angle::new::<revolution>(br_encoder.get_absolute()),
+            Angle::new::<revolution>(fr_encoder.get_absolute()),
         ];
 
         Drivetrain {
@@ -73,6 +75,19 @@ impl Drivetrain {
         }
     }
 
+    /// Control the drivetrain.
+    /// x, y, and rotation are driverstation inputs.
+    pub fn control_drivetrain(&self, x: f64, y: f64, rotation: f64) {
+        let target_transformation = match config::FIELD_ORIENTED {
+            true => self.field_orientate(vector![x, y]),
+            false => vector![x, y],
+        };
+
+        let mut targets = self.kinematics.get_targets(target_transformation, rotation);
+        // TODO: IMPL TARGETS.OPTIMIZE (AHHHHHHHHHHHHHHHHHHHHHHHHHH)
+        // TODO: IMPL SETSPEEDS
+    }
+
     /// Stops the drivetrain.
     pub fn stop(&self) {
         self.fl_drive.stop();
@@ -86,5 +101,17 @@ impl Drivetrain {
 
         self.fr_drive.stop();
         self.fr_turn.stop();
+    }
+
+    /// Resets the gyro.
+    pub fn reset_heading(&mut self) {
+        self.gyro.reset();
+    }
+
+    /// Field-orientate input from the driverstation.
+    /// target_transformation is the x and y input from the driverstation put into a vector.
+    /// This function rotates the driver's field orientated input to be robot oriented but the same direction.
+    fn field_orientate(&self, target_transformation: Vector2<f64>) -> Vector2<f64> {
+        Rotation2::new(-self.gyro.get_angle()) * target_transformation
     }
 }

@@ -31,6 +31,8 @@ impl Kinematics {
         let mut final_vectors: Vec<Vector2<f64>> = Vec::new();
         let ninety_degree_rotation = Rotation2::new(PI / 2.0);
         for mut vector in module_vectors {
+            // due to some underlying math, you have to do rotation * vector, not vector * rotation.
+            // search up "non-communicative matrix multiplication" and "rotation matrix" (this is what Rotation2 actually is) for the underlying math.
             vector = ninety_degree_rotation * vector;
             vector = vector.normalize();
             final_vectors.push(vector);
@@ -41,11 +43,11 @@ impl Kinematics {
         }
     }
 
-    /// ## Given x, y, and rotation input from driver station, return a Vec<(f64, Angle)> representing swerve module setpoints.
-    /// Vec(1) = FL, 2 = BL, 3 = BR, 4 = FR.
-    /// f64 represents speed setpoint, Angle represents swerve angle setpoint wrapped from -PI to PI.
-    fn calculate_targets(&self, x: f64, y: f64, input_rotation: f64) -> Vec<(f64, Angle)> {
-        let target_transformation = Vector2::new(x, y);
+    /// ## Given input from the driver station, return a Vec<(f64, Angle)> representing swerve module setpoints.
+    /// The target_transformation vector is a vector comprised of the x and y input from the driver station.
+    /// Returned vector follows swerve module order: Vec(1) = FL, 2 = BL, 3 = BR, 4 = FR.
+    /// Returned vector f64 represents speed setpoint and the Angle represents swerve angle setpoint wrapped from -PI to PI.
+    fn calculate_targets(&self, target_transformation: Vector2<f64>, input_rotation: f64) -> Vec<(f64, Angle)> {
         let mut module_setpoints: Vec<(f64, Angle)> = Vec::new();
 
         for rotation_unit_vector in &self.module_rotation_unit_vectors.clone() {
@@ -64,6 +66,7 @@ impl Kinematics {
     }
 
     /// ## Scales the speed setpoints to be from -1 to 1.
+    /// FYI: It is possible for speed to be >1 after calculate_targets.
     fn scale_targets(&self, targets: Vec<(f64, Angle)>) -> Vec<(f64, Angle)> {
         let mut scaled_targets: Vec<(f64, Angle)> = Vec::new();
         let mut max = 0.0;
@@ -85,8 +88,8 @@ impl Kinematics {
 
     /// ## Returns swerve setpoints given driver station input.
     /// Positive rotation = clockwise.
-    pub fn get_targets(&self, x: f64, y: f64, rotation: f64) -> Vec<(f64, Angle)> {
-        let mut targets = self.calculate_targets(x, y, rotation);
+    pub fn get_targets(&self, target_transformation: Vector2<f64>, rotation: f64) -> Vec<(f64, Angle)> {
+        let mut targets = self.calculate_targets(target_transformation, rotation);
         targets = self.scale_targets(targets);
         targets
     }
@@ -123,7 +126,7 @@ mod kinematics_tests {
         println!("calculate_targets_right_test:");
         let kinematics = Kinematics::new();
 
-        let results = kinematics.calculate_targets(1.0, 0.0, 0.0);
+        let results = kinematics.calculate_targets(vector![1.0, 0.0], 0.0);
         let expected: Vec<(f64, Angle)> = vec![
             (1.0, Angle::new::<radian>(0.0)),
             (1.0, Angle::new::<radian>(0.0)),
@@ -140,7 +143,7 @@ mod kinematics_tests {
         println!("calculate_targets_right_test:");
         let kinematics = Kinematics::new();
 
-        let results = kinematics.calculate_targets(0.5, 0.0, 0.0);
+        let results = kinematics.calculate_targets(vector![0.5, 0.0], 0.0);
         let expected: Vec<(f64, Angle)> = vec![
             (0.5, Angle::new::<radian>(0.0)),
             (0.5, Angle::new::<radian>(0.0)),
@@ -157,7 +160,7 @@ mod kinematics_tests {
         println!("calculate_targets_left_test:");
         let kinematics = Kinematics::new();
 
-        let results = kinematics.calculate_targets(-1.0, 0.0, 0.0);
+        let results = kinematics.calculate_targets(vector![-1.0, 0.0], 0.0);
         let expected: Vec<(f64, Angle)> = vec![
             (1.0, Angle::new::<radian>(PI)),
             (1.0, Angle::new::<radian>(PI)),
@@ -174,7 +177,7 @@ mod kinematics_tests {
         println!("calculate_targets_left_test:");
         let kinematics = Kinematics::new();
 
-        let results = kinematics.calculate_targets(-0.5, 0.0, 0.0);
+        let results = kinematics.calculate_targets(vector![-0.5, 0.0], 0.0);
         let expected: Vec<(f64, Angle)> = vec![
             (0.5, Angle::new::<radian>(PI)),
             (0.5, Angle::new::<radian>(PI)),
@@ -191,7 +194,7 @@ mod kinematics_tests {
         println!("calculate_targets_up_test:");
         let kinematics = Kinematics::new();
 
-        let results = kinematics.calculate_targets(0.0, 1.0, 0.0);
+        let results = kinematics.calculate_targets(vector![0.0, 1.0], 0.0);
         let expected: Vec<(f64, Angle)> = vec![
             (1.0, Angle::new::<radian>(PI / 2.0)),
             (1.0, Angle::new::<radian>(PI / 2.0)),
@@ -208,7 +211,7 @@ mod kinematics_tests {
         println!("calculate_targets_up_test:");
         let kinematics = Kinematics::new();
 
-        let results = kinematics.calculate_targets(0.0, 0.5, 0.0);
+        let results = kinematics.calculate_targets(vector![0.0, 0.5], 0.0);
         let expected: Vec<(f64, Angle)> = vec![
             (0.5, Angle::new::<radian>(PI / 2.0)),
             (0.5, Angle::new::<radian>(PI / 2.0)),
@@ -225,7 +228,7 @@ mod kinematics_tests {
         println!("calculate_targets_down_test:");
         let kinematics = Kinematics::new();
 
-        let results = kinematics.calculate_targets(0.0, -1.0, 0.0);
+        let results = kinematics.calculate_targets(vector![0.0, -1.0], 0.0);
         let expected: Vec<(f64, Angle)> = vec![
             (1.0, Angle::new::<radian>(PI / -2.0)),
             (1.0, Angle::new::<radian>(PI / -2.0)),
@@ -242,7 +245,7 @@ mod kinematics_tests {
         println!("calculate_targets_down_test:");
         let kinematics = Kinematics::new();
 
-        let results = kinematics.calculate_targets(0.0, -0.5, 0.0);
+        let results = kinematics.calculate_targets(vector![0.0, -0.5], 0.0);
         let expected: Vec<(f64, Angle)> = vec![
             (0.5, Angle::new::<radian>(PI / -2.0)),
             (0.5, Angle::new::<radian>(PI / -2.0)),
@@ -259,7 +262,7 @@ mod kinematics_tests {
         println!("calculate_targets_clockwise_test:");
         let kinematics = Kinematics::new();
 
-        let results = kinematics.calculate_targets(0.0, 0.0, 1.0);
+        let results = kinematics.calculate_targets(vector![0.0, 0.0], 1.0);
         // floating point operations means 1.0 becomes 0.9999999999
         let expected: Vec<(f64, Angle)> = vec![
             (0.9999999999999999, Angle::new::<radian>(3.0 * PI / 4.0)),
@@ -277,7 +280,7 @@ mod kinematics_tests {
         println!("calculate_targets_clockwise_test:");
         let kinematics = Kinematics::new();
 
-        let results = kinematics.calculate_targets(0.0, 0.0, 0.5);
+        let results = kinematics.calculate_targets(vector![0.0, 0.0], 0.5);
         // floating point operations means 0.5 becomes 0.49999999999999994
         let expected: Vec<(f64, Angle)> = vec![
             (0.49999999999999994, Angle::new::<radian>(3.0 * PI / 4.0)),
@@ -295,7 +298,7 @@ mod kinematics_tests {
         println!("calculate_targets_clockwise_test:");
         let kinematics = Kinematics::new();
 
-        let results = kinematics.calculate_targets(0.0, 0.0, -1.0);
+        let results = kinematics.calculate_targets(vector![0.0, 0.0], -1.0);
         // floating point operations means 1.0 becomes 0.9999999999
         let expected: Vec<(f64, Angle)> = vec![
             (0.9999999999999999, Angle::new::<radian>(-PI / 4.0)),
@@ -313,7 +316,7 @@ mod kinematics_tests {
         println!("calculate_targets_clockwise_test:");
         let kinematics = Kinematics::new();
 
-        let results = kinematics.calculate_targets(0.0, 0.0, -0.5);
+        let results = kinematics.calculate_targets(vector![0.0, 0.0], -0.5);
         // floating point operations means 0.5 becomes 0.49999999999999994
         let expected: Vec<(f64, Angle)> = vec![
             (0.49999999999999994, Angle::new::<radian>(-PI / 4.0)),
@@ -329,7 +332,7 @@ mod kinematics_tests {
     #[test]
     fn scale_targets_test() {
         let kinematics = Kinematics::new();
-        let target = kinematics.calculate_targets(1.0, 1.0, 1.0);
+        let target = kinematics.calculate_targets(vector![1.0, 1.0], 1.0);
         println!("targets: {:?}", target);
         let target = kinematics.scale_targets(target);
         println!("scaled targets: {:?}", target);
