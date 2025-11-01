@@ -113,19 +113,37 @@ impl Drivetrain {
             Angle::new::<revolution>(self.fr_turn.get_position()) + self.motor_encoder_offsets[3],
         ];
 
-        measured_angles.iter().map(|angle| {
-            let mut angle_value = angle.get::<degree>();
-            angle_value = angle_value % 360.0;
-            Angle::new::<degree>(angle_value)
-        });
+        //iterate through the setpoints and current angles
+        setpoints
+            .into_iter()
+            .zip(measured_angles.into_iter())
+            .map(|((mut speed, target_angle), current_angle)| {
+                //convert both angles to degrees for comparison
+                let target_angle = target_angle.get::<degree>();
+                let current = current_angle.get::<degree>();
 
-        setpoints.iter().map(|tuple| {
-            let mut angle_value = tuple.1.get::<degree>();
-            angle_value = angle_value % 360.0;
-            (tuple.0, Angle::new::<degree>(angle_value))
-        });
+                //calculate shortest angular difference between target and current
+                let mut difference = (target_angle - current + 180.0) % 360.0 - 180.0;
+                if difference < -180.0 {
+                    difference += 360.0;
+                }
 
-        for
+                //if rotating more than 90° flip speed and rotate in opposite direction
+                if difference.abs() > 90.0 {
+                    speed *= -1.0;
+                    if difference > 0.0 {
+                        difference += -180.0;
+                    } else {
+                        difference += 180.0;
+                    }
+                }
+
+                //apply optimized angle adjustment to current angle
+                let optimized_angle = current_angle + Angle::new::<degree>(difference);
+                (speed, optimized_angle)
+            })
+            .collect()
+
     }
 
     /// Control the drivetrain.
