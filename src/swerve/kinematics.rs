@@ -101,31 +101,6 @@ impl Kinematics {
         targets = self.scale_targets(targets);
         targets
     }
-
-    pub fn optimize(speed: f64, current_angle: Angle, target_angle: Angle) -> (f64, Angle) {
-        let angle_rad = current_angle.get::<radian>();
-        let target_rad = target_angle.get::<radian>();
-
-        let mut difference = (angle_rad - target_rad + PI) % (2.0 * PI) - PI;
-        if difference < -PI {
-            difference += 2.0 * PI;
-        }
-
-        let mut optimized_speed = speed;
-        if difference.abs() > FRAC_PI_2 {
-            optimized_speed *= -1.0;
-
-            if difference > 0.0 {
-                difference = -PI + difference;
-            } else {
-                difference = PI + difference;
-            }
-        }
-
-        let optimized_angle = target_angle + Angle::new::<radian>(difference);
-        (optimized_speed, optimized_angle)
-    }
-
 }
 
 // run tests with
