@@ -143,7 +143,6 @@ impl Drivetrain {
                 (speed, optimized_angle)
             })
             .collect()
-
     }
 
     /// Control the drivetrain.
