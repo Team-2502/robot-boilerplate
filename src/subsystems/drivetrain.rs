@@ -184,10 +184,8 @@ impl Drivetrain {
             false => vector![x, y],
         };
 
-        let mut targets = self.kinematics.get_targets(target_transformation, rotation);
-        let mut optimizied_targets = self.optimize_setpoints(targets);
-        // TODO: IMPL TARGETS.OPTIMIZE (AHHHHHHHHHHHHHHHHHHHHHHHHHH)
-        // TODO: IMPL SETSPEEDS
-        self.set_speed(optimizied_targets);
+        let targets = self.kinematics.get_targets(target_transformation, rotation);
+        let optimized_targets = self.optimize_setpoints(targets);
+        self.set_speed(optimized_targets);
     }
 }
