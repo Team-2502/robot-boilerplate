@@ -4,10 +4,11 @@ use crate::constants::robotmap::drivetrain_map::{
     FL_DRIVE_ID, FL_ENCODER_ID, FL_TURN_ID, FR_DRIVE_ID, FR_ENCODER_ID, FR_TURN_ID, GYRO_ID,
 };
 use crate::swerve::kinematics::Kinematics;
-use frcrs::ctre::{CanCoder, Pigeon, Talon};
+use frcrs::ctre::{CanCoder, ControlMode, Pigeon, Talon};
 use nalgebra::{Rotation2, Vector2, vector};
 use uom::si::angle::{degree, revolution};
 use uom::si::f64::Angle;
+use crate::constants::drivetrain::SWERVE_TURN_RATIO;
 
 /// Drivetrain struct.
 /// kinematics field interfaces with inverse kinematics functions.
@@ -145,16 +146,32 @@ impl Drivetrain {
             .collect()
     }
 
+    pub fn set_speed(&mut self, targets: Vec<(f64, Angle)>) {
+        // set drive motor speeds based on targets
+        self.fl_drive.set(ControlMode::Percent, targets[0].0);
+        self.bl_drive.set(ControlMode::Percent, targets[1].0);
+        self.br_drive.set(ControlMode::Percent, targets[2].0);
+        self.fr_drive.set(ControlMode::Percent, targets[3].0);
+
+        // set turn motors based on targets
+        self.fl_turn.set(ControlMode::Percent, -(targets[0].1.get::<revolution>() - self.motor_encoder_offsets[0].get::<revolution>()) * SWERVE_TURN_RATIO);
+        self.bl_turn.set(ControlMode::Percent, -(targets[1].1.get::<revolution>() - self.motor_encoder_offsets[1].get::<revolution>()) * SWERVE_TURN_RATIO);
+        self.br_turn.set(ControlMode::Percent, -(targets[2].1.get::<revolution>() - self.motor_encoder_offsets[2].get::<revolution>()) * SWERVE_TURN_RATIO);
+        self.fr_turn.set(ControlMode::Percent, -(targets[3].1.get::<revolution>() - self.motor_encoder_offsets[3].get::<revolution>()) * SWERVE_TURN_RATIO);
+    }
+
     /// Control the drivetrain.
     /// x, y, and rotation are driverstation inputs.
-    pub fn control_drivetrain(&self, x: f64, y: f64, rotation: f64) {
+    pub fn control_drivetrain(&mut self, x: f64, y: f64, rotation: f64) {
         let target_transformation = match config::FIELD_ORIENTED {
             true => self.field_orientate(vector![x, y]),
             false => vector![x, y],
         };
 
         let mut targets = self.kinematics.get_targets(target_transformation, rotation);
+        let mut optimizied_targets = self.optimize_setpoints(targets);
         // TODO: IMPL TARGETS.OPTIMIZE (AHHHHHHHHHHHHHHHHHHHHHHHHHH)
         // TODO: IMPL SETSPEEDS
+        self.set_speed(optimizied_targets);
     }
 }

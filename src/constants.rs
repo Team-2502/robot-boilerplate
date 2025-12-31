@@ -64,3 +64,7 @@ pub mod pose_estimation {
     ///  meters of inaccuracy per (meter/second) of drivetrain linear velocity
     pub const LIMELIGHT_INACCURACY_PER_LINEAR_VELOCITY: f64 = 2.;
 }
+
+pub mod drivetrain {
+    pub const SWERVE_TURN_RATIO: f64 = 12.8;
+}
