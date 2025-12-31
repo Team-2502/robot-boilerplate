@@ -1,4 +1,5 @@
 use crate::constants::config;
+use crate::constants::drivetrain::SWERVE_TURN_RATIO;
 use crate::constants::robotmap::drivetrain_map::{
     BL_DRIVE_ID, BL_ENCODER_ID, BL_TURN_ID, BR_DRIVE_ID, BR_ENCODER_ID, DRIVETRAIN_CANBUS,
     FL_DRIVE_ID, FL_ENCODER_ID, FL_TURN_ID, FR_DRIVE_ID, FR_ENCODER_ID, FR_TURN_ID, GYRO_ID,
@@ -8,7 +9,6 @@ use frcrs::ctre::{CanCoder, ControlMode, Pigeon, Talon};
 use nalgebra::{Rotation2, Vector2, vector};
 use uom::si::angle::{degree, revolution};
 use uom::si::f64::Angle;
-use crate::constants::drivetrain::SWERVE_TURN_RATIO;
 
 /// Drivetrain struct.
 /// kinematics field interfaces with inverse kinematics functions.
@@ -154,10 +154,26 @@ impl Drivetrain {
         self.fr_drive.set(ControlMode::Percent, targets[3].0);
 
         // set turn motors based on targets
-        self.fl_turn.set(ControlMode::Percent, -(targets[0].1.get::<revolution>() - self.motor_encoder_offsets[0].get::<revolution>()) * SWERVE_TURN_RATIO);
-        self.bl_turn.set(ControlMode::Percent, -(targets[1].1.get::<revolution>() - self.motor_encoder_offsets[1].get::<revolution>()) * SWERVE_TURN_RATIO);
-        self.br_turn.set(ControlMode::Percent, -(targets[2].1.get::<revolution>() - self.motor_encoder_offsets[2].get::<revolution>()) * SWERVE_TURN_RATIO);
-        self.fr_turn.set(ControlMode::Percent, -(targets[3].1.get::<revolution>() - self.motor_encoder_offsets[3].get::<revolution>()) * SWERVE_TURN_RATIO);
+        self.fl_turn.set(
+            ControlMode::Percent,
+            -(targets[0].1.get::<revolution>() - self.motor_encoder_offsets[0].get::<revolution>())
+                * SWERVE_TURN_RATIO,
+        );
+        self.bl_turn.set(
+            ControlMode::Percent,
+            -(targets[1].1.get::<revolution>() - self.motor_encoder_offsets[1].get::<revolution>())
+                * SWERVE_TURN_RATIO,
+        );
+        self.br_turn.set(
+            ControlMode::Percent,
+            -(targets[2].1.get::<revolution>() - self.motor_encoder_offsets[2].get::<revolution>())
+                * SWERVE_TURN_RATIO,
+        );
+        self.fr_turn.set(
+            ControlMode::Percent,
+            -(targets[3].1.get::<revolution>() - self.motor_encoder_offsets[3].get::<revolution>())
+                * SWERVE_TURN_RATIO,
+        );
     }
 
     /// Control the drivetrain.
