@@ -273,4 +273,49 @@ impl Vision {
     pub fn get_yaw(&self) -> Angle {
         Angle::new::<radian>(self.results.botpose_wpiblue[5])
     }
+
+    /// gets how much we trust a limelight if using more than one
+    pub fn vision_weight(&self) -> f64 {
+        // check if it can see a tage if not confidence is 0
+        let tag_id = self.get_id();
+        if tag_id == -1 {
+            return 0.0;
+        }
+
+        // trust the closest tag more as its more reliable
+        // if no distance is found confidence is 0
+        let distance_weight = match self.get_dist() {
+            Some(dist) => {
+                let meters = dist.get::<meter>();
+                (1.0 / meters.max(0.5)).clamp(0.0, 1.0)
+            }
+            None => 0.0,
+        };
+
+        // get tag position (should always return FieldPosition for valid id)
+        let tag_data = self.get_tag_position(tag_id).unwrap();
+        let tag_coord = tag_data.coordinate.unwrap();
+
+        // get robot position from botpose_orb
+        let robot_position = match self.get_botpose_orb() {
+            Some(pos) => pos,
+            None => return 0.0, // no valid robot position weight is 0
+        };
+
+        // get the x,y to the tag as well as the angle
+        let to_tag = Vector2::new(tag_coord.x - robot_position.x, tag_coord.y - robot_position.y);
+        let angle_to_tag = f64::atan2(to_tag.y.get::<meter>(), to_tag.x.get::<meter>());
+
+        // get the robots heading
+        let robot_angle = self.get_yaw().get::<radian>();
+
+        // get the angular difference from robot to tag
+        let angle_diff = (angle_to_tag - robot_angle).abs();
+
+        // reduce weight for skewed angles, 1 when aligned, 0 when perpendicular
+        let angle_weight = angle_diff.cos().max(0.0);
+
+        // multiply to get the final confidence
+        distance_weight * angle_weight
+    }
 }
