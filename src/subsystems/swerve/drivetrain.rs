@@ -17,7 +17,7 @@ use uom::si::f64::Angle;
 pub struct Drivetrain {
     kinematics: Kinematics,
     pub odometry: Odometry,
-    gyro: Pigeon,
+    pub(in crate::subsystems::swerve) gyro: Pigeon,
 
     motor_encoder_offsets: [Angle; 4],
 

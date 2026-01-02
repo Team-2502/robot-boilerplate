@@ -10,7 +10,7 @@ use uom::si::{
     length::meter,
 };
 
-use crate::constants::pose_estimation::{
+use crate::constants::vision::{
     LIMELIGHT_BASE_FOM, LIMELIGHT_INACCURACY_PER_ANGULAR_VELOCITY,
     LIMELIGHT_INACCURACY_PER_LINEAR_VELOCITY,
 };
