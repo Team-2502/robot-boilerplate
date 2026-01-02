@@ -1,7 +1,9 @@
-use uom::si::length::inch;
-use uom::si::angle::revolution;
+use std::ops::Sub;
+use nalgebra::{vector, Vector2};
+use uom::si::length::{inch, meter};
+use uom::si::angle::{degree, radian, revolution};
 use uom::si::f64::{Angle, Length};
-use crate::constants::drivetrain::{SWERVE_DRIVE_RATIO, SWERVE_WHEEL_DIAMETER_INCHES};
+use crate::constants::drivetrain::{ARC_ODOMETRY_MINIMUM_DELTA_ANGLE_RADIANS, SWERVE_DRIVE_RATIO, SWERVE_WHEEL_DIAMETER_INCHES};
 use crate::subsystems::swerve::drivetrain::Drivetrain;
 
 /// ## Robot Odometry system.
@@ -9,21 +11,6 @@ use crate::subsystems::swerve::drivetrain::Drivetrain;
 pub struct Odometry {
     pub pose: RobotPoseEstimate,
     last_frame_module_odometry: Vec<ModuleOdometry>,
-}
-
-impl Odometry {
-    /// ## Makes a new Odometry system.
-    /// The parameter RobotPoseEstimate will be where the robot starts from.
-    pub fn new(pose: RobotPoseEstimate) -> Odometry {
-        Odometry {
-            pose,
-            last_frame_module_odometry: Vec::new(),
-        }
-    }
-
-    pub fn set_pose(&mut self, pose: RobotPoseEstimate) {
-        self.pose = pose;
-    }
 }
 
 /// ## Private odometry struct that contains: <br>
@@ -42,6 +29,21 @@ pub struct RobotPoseEstimate {
     fom: f64,
     x: Length,
     y: Length,
+}
+
+impl Odometry {
+    /// ## Makes a new Odometry system.
+    /// The parameter RobotPoseEstimate will be where the robot starts from.
+    pub fn new(pose: RobotPoseEstimate) -> Odometry {
+        Odometry {
+            pose,
+            last_frame_module_odometry: Vec::new(),
+        }
+    }
+
+    pub fn set_pose(&mut self, pose: RobotPoseEstimate) {
+        self.pose = pose;
+    }
 }
 
 impl Drivetrain {
@@ -69,20 +71,149 @@ impl Drivetrain {
 
     /// ## Calculates how the robot's x and y has moved since the last time this function was called.
     /// Uses Arc Odometry; see https://docs.google.com/document/d/1g-2a46vnE7GlO8Jhg7rIr4NdUOui1fEhV2Z8suaVDSE/edit?tab=t.0 for a writeup by Riley LaMothe (2502) or team 1690's Software Sessions Part II.
+
+    // TODO:
+    // abstract into multiple functions
+    // robot -> field centric
+    // individual modules -> robot pose
+    // fom calc
+    // add to current pos
+    // name things better
+    // restructure for readability and efficiency
+
     fn update_pose(&mut self) {
-        let current_module_odo = self.get_module_odometry();
-        let last_frame_module_odo = self.odometry.last_frame_module_odometry.clone();
+        let current_module_odometry = self.get_module_odometry();
+        let last_frame_module_odometry = self.odometry.last_frame_module_odometry.clone();
 
         // Handle the first time this function is called; Odometry.last_frame_module_odometry is just a Vec::new().
-        if last_frame_module_odo.len() == 0 {
-            self.odometry.last_frame_module_odometry = current_module_odo;
+        if last_frame_module_odometry.len() == 0 {
+            self.odometry.last_frame_module_odometry = current_module_odometry;
             return;
         }
 
-        // Get change in angle and distance traveled
-        let (delta_angle, distance) = calculate_differences(&current_module_odo, &last_frame_module_odo);
+        // Arc Odometry starts here
+
+        // Get change in module angle and distance traveled.
+        // The distance traveled will be equal to the length of our imaginary arc.
+        let (delta_angle, arc_length) = calculate_differences(&current_module_odometry, &last_frame_module_odometry);
 
 
+        // Calculate arc's radius
+        // We have the arc's angle (equal to change in module angle, via geometry) and the arc's length, so we can rewrite the following equation for radius
+        // Arc Length = Arc Radius * Arc Angle in Radians   ->   Arc Length in Radians = Arc Length / Arc Radius
+        let arc_radius: Vec<Length> = delta_angle.clone()
+            .iter()
+            .zip(arc_length.clone().iter())
+            .map(|(delta_angle, arc_length)| {
+                Length::new::<meter>(
+                    arc_length.get::<meter>() / delta_angle.get::<radian>()
+                )
+            })
+            .collect();
+
+
+        // Calculate arc's center (represented by a mathematical vector), assuming last module is (0,0) w/ a robot-oriented coordinate system.
+        // Currently, we know the arc's radius and the current and old module angles.
+        // Via geometry (definition of tangency), the arc's center will be perpendicular to the old module's angle;
+        //  the arc's center is perpendicular to where the module was facing in the past.
+        // However, we don't know if the center is to the left of (0,0) or to the right; we can figure this out by seeing if the arc curves to the left or the right.
+        // We can know if the arc curves to the left or the right via delta_angle.
+        // After figuring out if it is to the left or right, we can simply go one radius that way to find the arc's center.
+
+        // This is some scary syntax; just make sure you know what zip does, take your time, and you should be fine.
+        let origin_to_arc_center_vector: Vec<Vector2<Length>> = last_frame_module_odometry
+            .clone()
+            .iter()
+            .zip(
+                delta_angle
+                    .iter()
+                    .zip(arc_radius.iter())
+            )        // Data structure is: Iterator<(Old ModuleOdometry, (delta_angle, arc_radius))>, that's what gets passed to the closure
+            .map(|(last_frame_module_odometry, (delta_angle, arc_radius))| {
+
+                // Check if center is to left or right
+                let mut origin_to_arc_center_angle = last_frame_module_odometry.current_angle;
+                if delta_angle.get::<radian>() < 0.0 {
+                    origin_to_arc_center_angle += Angle::new::<degree>(90.0);
+                } else {
+                    origin_to_arc_center_angle -= Angle::new::<degree>(90.0);
+                }
+
+                // Construct the vector with trig functions
+                vector![
+                    Length::new::<meter>(arc_radius.get::<meter>()) * origin_to_arc_center_angle.cos(),
+                    Length::new::<meter>(arc_radius.get::<meter>()) * origin_to_arc_center_angle.sin(),
+                ]
+            })
+            .collect();
+
+
+        // Now, we have a vector that takes us from the origin to the center of the arc. If we get a vector that takes us from the center to the end point, we're good to go!
+        // Luckily, we can do the exact same thing we did to figure out the vector from the origin to the center to figure out center to endpoint
+        //  if we use the current module angle in place of the old module angle.
+        // This will give us a vector that takes us from the endpoint to the center; if we subtract (or multiply the vector by -1 and add) this vector,
+        //  we will have a vector that brings us from the arc center to the endpoint.
+        let arc_center_to_endpoint_vector: Vec<Vector2<Length>> = current_module_odometry
+            .clone()
+            .iter()
+            .zip(
+                delta_angle
+                    .clone()
+                    .iter()
+                    .zip(arc_radius.iter())
+            )        // Data structure is: Iterator<(Current ModuleOdometry, (delta_angle, arc_radius))>, that's what gets passed to the closure
+            .map(|(current_module_odometry, (delta_angle, arc_radius))| {
+
+                // Check if center is to left or right
+                let mut endpoint_to_arc_center_angle = current_module_odometry.current_angle;
+                if delta_angle.get::<radian>() < 0.0 {
+                    endpoint_to_arc_center_angle += Angle::new::<degree>(90.0);
+                } else {
+                    endpoint_to_arc_center_angle -= Angle::new::<degree>(90.0);
+                }
+
+                // Construct the vector with trig functions - Notice the negative signs in front, this changes the vector from
+                // Endpoint -> Center to
+                // Center -> Endpoint
+                vector![
+                    -Length::new::<meter>(arc_radius.get::<meter>()) * endpoint_to_arc_center_angle.cos(),
+                    -Length::new::<meter>(arc_radius.get::<meter>()) * endpoint_to_arc_center_angle.sin(),
+                ]
+            })
+            .collect();
+
+
+        // Construct the final origin -> endpoint vector (finally).
+        let origin_to_endpoint_vector: Vec<Vector2<Length>> = origin_to_arc_center_vector
+            .iter()
+            .zip(arc_center_to_endpoint_vector.iter())
+            .map(|(origin_to_arc_center_vector, arc_center_to_endpoint_vector)| {
+                origin_to_arc_center_vector + arc_center_to_endpoint_vector
+            })
+            .collect();
+
+
+        // Figure out the delta position for all 4 modules.
+        // If the delta_angle is too low the arc odometry will be very inaccurate. In this case, just assume a straight line.
+        let delta_pose: Vec<Vector2<Length>> = origin_to_arc_center_vector
+            .iter()
+            .zip(delta_angle.iter())
+            .zip(
+                current_module_odometry
+                    .iter()
+                    .zip(last_frame_module_odometry.iter())
+            ) // Data structure: Iterator<((origin_to_arc_center_vector, delta_angle), (Current ModuleOdometry, Old ModuleOdometry))
+            .map(|((origin_to_arc_center_vector, delta_angle), (current_module_odometry, last_frame_module_odometry))| {
+                if delta_angle.get::<radian>().abs() < ARC_ODOMETRY_MINIMUM_DELTA_ANGLE_RADIANS || delta_angle.get::<radian>().is_nan() {
+                    vector![
+                        current_module_odometry.total_distance_traveled - last_frame_module_odometry.total_distance_traveled,
+                        current_module_odometry.total_distance_traveled - last_frame_module_odometry.total_distance_traveled
+                    ]
+                } else {
+                    origin_to_arc_center_vector.to_owned()
+                }
+            })
+            .collect();
     }
 
     fn update_odo(&mut self) {
@@ -112,9 +243,11 @@ fn calculate_differences(current_module_odo: &Vec<ModuleOdometry>, last_frame_mo
     (delta_angle, delta_distance)
 }
 
+
+
 #[cfg(test)]
 mod tests {
-    use uom::si::angle::{degree, radian};
+    use uom::si::angle::{degree};
     use super::*;
     #[test]
     fn delta_angle() {
