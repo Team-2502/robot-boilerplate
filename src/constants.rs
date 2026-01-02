@@ -68,5 +68,5 @@ pub mod drivetrain {
     pub const SWERVE_DRIVE_RATIO: f64 = 1.0;
     pub const SWERVE_WHEEL_DIAMETER_INCHES: f64 = 1.0;
     pub const ARC_ODOMETRY_MINIMUM_DELTA_ANGLE_RADIANS: f64 = 0.00001;
-    pub const ARC_ODOMETRY_DRIFT_FOM_RATIO: f64 = 1.0;
+    pub const ARC_ODOMETRY_FOM_DAMPENING: f64 = 0.02; // How much to distrust higher values for arc radius.
 }

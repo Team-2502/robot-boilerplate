@@ -1,7 +1,4 @@
-use crate::constants::drivetrain::{
-    ARC_ODOMETRY_DRIFT_FOM_RATIO, ARC_ODOMETRY_MINIMUM_DELTA_ANGLE_RADIANS, SWERVE_DRIVE_RATIO,
-    SWERVE_WHEEL_DIAMETER_INCHES,
-};
+use crate::constants::drivetrain::{ARC_ODOMETRY_FOM_DAMPENING, ARC_ODOMETRY_MINIMUM_DELTA_ANGLE_RADIANS, SWERVE_DRIVE_RATIO, SWERVE_WHEEL_DIAMETER_INCHES};
 use crate::subsystems::swerve::drivetrain::Drivetrain;
 use nalgebra::{Rotation2, Vector2, vector};
 use std::f64::consts::PI;
@@ -292,7 +289,14 @@ fn module_level_arc_odometry(
         sum_arc_length_meters_as_f64 += arc_length.get::<meter>().abs();
     }
     let average_arc_length_meters_as_f64 = sum_arc_length_meters_as_f64 / arc_length.len() as f64;
-    let figure_of_merit = average_arc_length_meters_as_f64 * ARC_ODOMETRY_DRIFT_FOM_RATIO;
+
+    //
+    let mut figure_of_merit = 0.0;
+    if average_arc_length_meters_as_f64 != 0.0 {
+        figure_of_merit = 1.0 / ((ARC_ODOMETRY_FOM_DAMPENING) * average_arc_length_meters_as_f64 + 1.0);
+    } else {
+        figure_of_merit = 1.0;
+    }
 
     (delta_pose, figure_of_merit)
 }
@@ -342,30 +346,52 @@ fn average_module_delta_poses(module_delta_poses: Vec<Vector2<Length>>) -> Vecto
 
 #[cfg(test)]
 mod tests {
-    // use super::*;
-    // use uom::si::angle::degree;
-    // #[test]
-    // fn
+    use super::*;
+    use uom::si::angle::degree;
+    #[test]
+    fn module_level_arc_odometry_stationary_test() {
+        let current_module_odometry = vec![
+            ModuleOdometry {
+                total_distance_traveled: Length::new::<meter>(1.0),
+                current_angle: Angle::new::<degree>(1.0),
+            }, ModuleOdometry {
+                total_distance_traveled: Length::new::<meter>(1.0),
+                current_angle: Angle::new::<degree>(1.0),
+            }, ModuleOdometry {
+                total_distance_traveled: Length::new::<meter>(1.0),
+                current_angle: Angle::new::<degree>(1.0),
+            }, ModuleOdometry {
+                total_distance_traveled: Length::new::<meter>(1.0),
+                current_angle: Angle::new::<degree>(1.0),
+            },
+        ];
 
-    // fn module_odometry_subtraction_test() {
-    //     let foo = ModuleOdometry {
-    //         total_distance_traveled: Length::new::<meter>(10.0),
-    //         current_angle: Angle::new::<degree>(90.0),
-    //     };
-    //     let bar = ModuleOdometry {
-    //         total_distance_traveled: Length::new::<meter>(5.0),
-    //         current_angle: Angle::new::<degree>(180.0),
-    //     };
-    //
-    //     let result = foo - bar;
-    //
-    //     let expected = ModuleOdometry {
-    //         total_distance_traveled: Length::new::<meter>(5.0),
-    //         current_angle: Angle::new::<degree>(-90.0),
-    //     };
-    //
-    //     println!("distance: {:?}, angle: {:?}", result.total_distance_traveled, result.current_angle);
-    //
-    //     assert_eq!(result, expected);
-    // }
+        let last_frame_module_odometry = vec![
+            ModuleOdometry {
+                total_distance_traveled: Length::new::<meter>(1.0),
+                current_angle: Angle::new::<degree>(1.0),
+            }, ModuleOdometry {
+                total_distance_traveled: Length::new::<meter>(1.0),
+                current_angle: Angle::new::<degree>(1.0),
+            }, ModuleOdometry {
+                total_distance_traveled: Length::new::<meter>(1.0),
+                current_angle: Angle::new::<degree>(1.0),
+            }, ModuleOdometry {
+                total_distance_traveled: Length::new::<meter>(1.0),
+                current_angle: Angle::new::<degree>(1.0),
+            },
+        ];
+
+        let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+
+        let expected = (vec![
+            vector![Length::new::<meter>(0.0), Length::new::<meter>(0.0)],
+            vector![Length::new::<meter>(0.0), Length::new::<meter>(0.0)],
+            vector![Length::new::<meter>(0.0), Length::new::<meter>(0.0)],
+            vector![Length::new::<meter>(0.0), Length::new::<meter>(0.0)],
+        ], 1.0);
+
+        assert_eq!(results, expected);
+    }
+
 }
