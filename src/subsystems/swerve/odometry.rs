@@ -35,6 +35,7 @@ pub struct RobotPoseEstimate {
     fom: f64,
     x: Length,
     y: Length,
+    angle: Angle,
 }
 
 impl Odometry {
@@ -45,10 +46,6 @@ impl Odometry {
             pose_estimate: pose,
             last_frame_module_odometry: Vec::new(),
         }
-    }
-
-    pub fn set_pose(&mut self, pose: RobotPoseEstimate) {
-        self.pose_estimate = pose;
     }
 }
 
@@ -93,6 +90,7 @@ impl Drivetrain {
     // TODO:
     // name things better
     // restructure for readability and efficiency
+    //    use itertools::izip maybe
     /// ## Updates odometry for this frame.
     /// Uses Arc Odometry; see https://docs.google.com/document/d/1g-2a46vnE7GlO8Jhg7rIr4NdUOui1fEhV2Z8suaVDSE/edit?tab=t.0
     /// for a writeup by Riley LaMothe (2502) or team 1690's Software Sessions Part II. <br>
@@ -108,14 +106,14 @@ impl Drivetrain {
         }
 
         // Returns robot-oriented vectors representing each individual swerve module's pose change.
-        let (robot_oriented_module_delta_pose, figure_of_merit) = module_level_arc_odometry(
+        let (robot_oriented_module_delta_poses, figure_of_merit) = module_level_arc_odometry(
             current_module_odometry.clone(),
             last_frame_module_odometry.clone(),
         );
 
         // Field-orient those vectors.
         let field_oriented_module_delta_pose =
-            self.field_orient_delta_pose(robot_oriented_module_delta_pose);
+            self.field_orient_delta_poses(robot_oriented_module_delta_poses);
 
         // Gets robot delta pose by averaging the module delta poses.
         let robot_delta_pose = average_module_delta_poses(field_oriented_module_delta_pose);
@@ -124,11 +122,12 @@ impl Drivetrain {
         pose_estimate.x += robot_delta_pose.x;
         pose_estimate.y += robot_delta_pose.y;
         pose_estimate.fom += figure_of_merit;
+        pose_estimate.angle = Angle::new::<degree>(self.gyro.get_angle());
 
         self.odometry.pose_estimate = pose_estimate;
     }
 
-    fn field_orient_delta_pose(
+    fn field_orient_delta_poses(
         &self,
         robot_oriented_delta_pose: Vec<Vector2<Length>>,
     ) -> Vec<Vector2<Length>> {
@@ -159,6 +158,11 @@ impl Drivetrain {
             .collect();
 
         field_oriented_delta_pose
+    }
+
+    /// Make sure this is called AFTER update_pose is called in control_drivetrain. DO NOT just add an update_pos call.
+    pub fn get_robot_pose(&self) -> RobotPoseEstimate {
+        self.odometry.pose_estimate.clone()
     }
 }
 

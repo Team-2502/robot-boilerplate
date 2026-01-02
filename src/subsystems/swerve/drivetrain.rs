@@ -16,7 +16,7 @@ use uom::si::f64::Angle;
 /// motor_encoder_offsets are the absolute positions of the CANCoders on startup. These allow us to start the robot without physically zeroing the wheels.
 pub struct Drivetrain {
     kinematics: Kinematics,
-    pub odometry: Odometry,
+    pub(in crate::subsystems::swerve) odometry: Odometry,
     pub(in crate::subsystems::swerve) gyro: Pigeon,
 
     motor_encoder_offsets: [Angle; 4],
@@ -95,6 +95,18 @@ impl Drivetrain {
         self.fr_turn.stop();
     }
 
+    /// ## Gets the pose estimate.
+    /// Note: FOM only applies to x and y. <br>
+    /// Note: ONLY CALL THIS AFTER CONTROL_DRIVETRAIN HAS BEEN CALLED. If you call this before, the values will not be accurate.
+    pub fn get_pose_estimate(&self) -> RobotPoseEstimate {
+        self.odometry.pose_estimate.clone()
+    }
+
+    /// ## Set the robot's pose.
+    pub fn set_pose_estimate(&mut self, pose_estimate: RobotPoseEstimate) {
+        self.odometry.pose_estimate = pose_estimate;
+    }
+
     /// Resets the gyro.
     pub fn reset_heading(&mut self) {
         self.gyro.reset();
@@ -150,6 +162,7 @@ impl Drivetrain {
             .collect()
     }
 
+    /// ## Sets drivetrain motor speeds.
     pub fn set_speed(&mut self, targets: Vec<(f64, Angle)>) {
         // set drive motor speeds based on targets
         self.fl_drive.set(ControlMode::Percent, targets[0].0);
