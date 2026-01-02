@@ -34,7 +34,7 @@ impl Auto {
             .collect()
     }
 
-    pub async fn run_auto<'a>(ferris: Rc<RefCell<Ferris>>, chosen: Auto) {
+    pub async fn run_auto<'a>(_ferris: Rc<RefCell<Ferris>>, chosen: Auto) {
         match chosen {
             Auto::Nothing => {
                 println!("No auto was selected!");

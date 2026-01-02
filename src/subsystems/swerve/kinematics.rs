@@ -1,5 +1,5 @@
 use nalgebra::{Rotation2, Vector2};
-use std::f64::consts::{FRAC_PI_2, PI};
+use std::f64::consts::PI;
 use uom::si::angle::radian;
 use uom::si::f64::Angle;
 
@@ -56,7 +56,7 @@ impl Kinematics {
 
         for rotation_unit_vector in &self.module_rotation_unit_vectors.clone() {
             // scale each rotation unit vector by the rotation amount.
-            let rotation_vector = rotation_unit_vector.clone() * input_rotation;
+            let rotation_vector = *rotation_unit_vector * input_rotation;
 
             // add the scaled rotation vector to the target transformation vector in order to get the final vector.
             let final_vector = target_transformation + rotation_vector;

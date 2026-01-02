@@ -93,7 +93,7 @@ impl Vision {
     ///
     /// will return -1 if no tag is seen
     pub fn get_id(&self) -> i32 {
-        if self.results.Fiducial.len() != 0 {
+        if !self.results.Fiducial.is_empty() {
             self.results.Fiducial[0].fID
         } else {
             -1
@@ -303,7 +303,10 @@ impl Vision {
         };
 
         // get the x,y to the tag as well as the angle
-        let to_tag = Vector2::new(tag_coord.x - robot_position.x, tag_coord.y - robot_position.y);
+        let to_tag = Vector2::new(
+            tag_coord.x - robot_position.x,
+            tag_coord.y - robot_position.y,
+        );
         let angle_to_tag = f64::atan2(to_tag.y.get::<meter>(), to_tag.x.get::<meter>());
 
         // get the robots heading

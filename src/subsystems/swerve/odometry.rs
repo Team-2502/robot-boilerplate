@@ -1,10 +1,11 @@
-use std::ops::Sub;
-use nalgebra::{vector, Vector2};
-use uom::si::length::{inch, meter};
+use crate::constants::drivetrain::{
+    ARC_ODOMETRY_MINIMUM_DELTA_ANGLE_RADIANS, SWERVE_DRIVE_RATIO, SWERVE_WHEEL_DIAMETER_INCHES,
+};
+use crate::subsystems::swerve::drivetrain::Drivetrain;
+use nalgebra::{Vector2, vector};
 use uom::si::angle::{degree, radian, revolution};
 use uom::si::f64::{Angle, Length};
-use crate::constants::drivetrain::{ARC_ODOMETRY_MINIMUM_DELTA_ANGLE_RADIANS, SWERVE_DRIVE_RATIO, SWERVE_WHEEL_DIAMETER_INCHES};
-use crate::subsystems::swerve::drivetrain::Drivetrain;
+use uom::si::length::{inch, meter};
 
 /// ## Robot Odometry system.
 /// last_frame_module_odometry: information about the swerve modules on the last frame update_odo was called. See the private struct ModuleOdometry for more.
@@ -56,14 +57,14 @@ impl Drivetrain {
             (&self.fl_drive, &self.fl_turn),
             (&self.bl_drive, &self.bl_turn),
             (&self.br_drive, &self.br_turn),
-            (&self.fr_drive, &self.fr_turn)
+            (&self.fr_drive, &self.fr_turn),
         ] {
-            module_odometry.push(
-                ModuleOdometry {
-                    total_distance_traveled: Length::new::<inch>(SWERVE_WHEEL_DIAMETER_INCHES * (drive.get_position() * SWERVE_DRIVE_RATIO)),
-                    current_angle: Angle::new::<revolution>(turn.get_position()),
-                }
-            )
+            module_odometry.push(ModuleOdometry {
+                total_distance_traveled: Length::new::<inch>(
+                    SWERVE_WHEEL_DIAMETER_INCHES * (drive.get_position() * SWERVE_DRIVE_RATIO),
+                ),
+                current_angle: Angle::new::<revolution>(turn.get_position()),
+            })
         }
 
         module_odometry
@@ -86,7 +87,7 @@ impl Drivetrain {
         let last_frame_module_odometry = self.odometry.last_frame_module_odometry.clone();
 
         // Handle the first time this function is called; Odometry.last_frame_module_odometry is just a Vec::new().
-        if last_frame_module_odometry.len() == 0 {
+        if last_frame_module_odometry.is_empty() {
             self.odometry.last_frame_module_odometry = current_module_odometry;
             return;
         }
@@ -95,22 +96,20 @@ impl Drivetrain {
 
         // Get change in module angle and distance traveled.
         // The distance traveled will be equal to the length of our imaginary arc.
-        let (delta_angle, arc_length) = calculate_differences(&current_module_odometry, &last_frame_module_odometry);
-
+        let (delta_angle, arc_length) =
+            calculate_differences(&current_module_odometry, &last_frame_module_odometry);
 
         // Calculate arc's radius
         // We have the arc's angle (equal to change in module angle, via geometry) and the arc's length, so we can rewrite the following equation for radius
         // Arc Length = Arc Radius * Arc Angle in Radians   ->   Arc Length in Radians = Arc Length / Arc Radius
-        let arc_radius: Vec<Length> = delta_angle.clone()
+        let arc_radius: Vec<Length> = delta_angle
+            .clone()
             .iter()
             .zip(arc_length.clone().iter())
             .map(|(delta_angle, arc_length)| {
-                Length::new::<meter>(
-                    arc_length.get::<meter>() / delta_angle.get::<radian>()
-                )
+                Length::new::<meter>(arc_length.get::<meter>() / delta_angle.get::<radian>())
             })
             .collect();
-
 
         // Calculate arc's center (represented by a mathematical vector), assuming last module is (0,0) w/ a robot-oriented coordinate system.
         // Currently, we know the arc's radius and the current and old module angles.
@@ -124,13 +123,8 @@ impl Drivetrain {
         let origin_to_arc_center_vector: Vec<Vector2<Length>> = last_frame_module_odometry
             .clone()
             .iter()
-            .zip(
-                delta_angle
-                    .iter()
-                    .zip(arc_radius.iter())
-            )        // Data structure is: Iterator<(Old ModuleOdometry, (delta_angle, arc_radius))>, that's what gets passed to the closure
+            .zip(delta_angle.iter().zip(arc_radius.iter())) // Data structure is: Iterator<(Old ModuleOdometry, (delta_angle, arc_radius))>, that's what gets passed to the closure
             .map(|(last_frame_module_odometry, (delta_angle, arc_radius))| {
-
                 // Check if center is to left or right
                 let mut origin_to_arc_center_angle = last_frame_module_odometry.current_angle;
                 if delta_angle.get::<radian>() < 0.0 {
@@ -141,12 +135,13 @@ impl Drivetrain {
 
                 // Construct the vector with trig functions
                 vector![
-                    Length::new::<meter>(arc_radius.get::<meter>()) * origin_to_arc_center_angle.cos(),
-                    Length::new::<meter>(arc_radius.get::<meter>()) * origin_to_arc_center_angle.sin(),
+                    Length::new::<meter>(arc_radius.get::<meter>())
+                        * origin_to_arc_center_angle.cos(),
+                    Length::new::<meter>(arc_radius.get::<meter>())
+                        * origin_to_arc_center_angle.sin(),
                 ]
             })
             .collect();
-
 
         // Now, we have a vector that takes us from the origin to the center of the arc. If we get a vector that takes us from the center to the end point, we're good to go!
         // Luckily, we can do the exact same thing we did to figure out the vector from the origin to the center to figure out center to endpoint
@@ -156,14 +151,8 @@ impl Drivetrain {
         let arc_center_to_endpoint_vector: Vec<Vector2<Length>> = current_module_odometry
             .clone()
             .iter()
-            .zip(
-                delta_angle
-                    .clone()
-                    .iter()
-                    .zip(arc_radius.iter())
-            )        // Data structure is: Iterator<(Current ModuleOdometry, (delta_angle, arc_radius))>, that's what gets passed to the closure
+            .zip(delta_angle.clone().iter().zip(arc_radius.iter())) // Data structure is: Iterator<(Current ModuleOdometry, (delta_angle, arc_radius))>, that's what gets passed to the closure
             .map(|(current_module_odometry, (delta_angle, arc_radius))| {
-
                 // Check if center is to left or right
                 let mut endpoint_to_arc_center_angle = current_module_odometry.current_angle;
                 if delta_angle.get::<radian>() < 0.0 {
@@ -176,54 +165,65 @@ impl Drivetrain {
                 // Endpoint -> Center to
                 // Center -> Endpoint
                 vector![
-                    -Length::new::<meter>(arc_radius.get::<meter>()) * endpoint_to_arc_center_angle.cos(),
-                    -Length::new::<meter>(arc_radius.get::<meter>()) * endpoint_to_arc_center_angle.sin(),
+                    -Length::new::<meter>(arc_radius.get::<meter>())
+                        * endpoint_to_arc_center_angle.cos(),
+                    -Length::new::<meter>(arc_radius.get::<meter>())
+                        * endpoint_to_arc_center_angle.sin(),
                 ]
             })
             .collect();
 
-
         // Construct the final origin -> endpoint vector (finally).
-        let origin_to_endpoint_vector: Vec<Vector2<Length>> = origin_to_arc_center_vector
+        let _origin_to_endpoint_vector: Vec<Vector2<Length>> = origin_to_arc_center_vector
             .iter()
             .zip(arc_center_to_endpoint_vector.iter())
-            .map(|(origin_to_arc_center_vector, arc_center_to_endpoint_vector)| {
-                origin_to_arc_center_vector + arc_center_to_endpoint_vector
-            })
+            .map(
+                |(origin_to_arc_center_vector, arc_center_to_endpoint_vector)| {
+                    origin_to_arc_center_vector + arc_center_to_endpoint_vector
+                },
+            )
             .collect();
-
 
         // Figure out the delta position for all 4 modules.
         // If the delta_angle is too low the arc odometry will be very inaccurate. In this case, just assume a straight line.
-        let delta_pose: Vec<Vector2<Length>> = origin_to_arc_center_vector
+        let _delta_pose: Vec<Vector2<Length>> = origin_to_arc_center_vector
             .iter()
             .zip(delta_angle.iter())
             .zip(
                 current_module_odometry
                     .iter()
-                    .zip(last_frame_module_odometry.iter())
+                    .zip(last_frame_module_odometry.iter()),
             ) // Data structure: Iterator<((origin_to_arc_center_vector, delta_angle), (Current ModuleOdometry, Old ModuleOdometry))
-            .map(|((origin_to_arc_center_vector, delta_angle), (current_module_odometry, last_frame_module_odometry))| {
-                if delta_angle.get::<radian>().abs() < ARC_ODOMETRY_MINIMUM_DELTA_ANGLE_RADIANS || delta_angle.get::<radian>().is_nan() {
-                    vector![
-                        current_module_odometry.total_distance_traveled - last_frame_module_odometry.total_distance_traveled,
-                        current_module_odometry.total_distance_traveled - last_frame_module_odometry.total_distance_traveled
-                    ]
-                } else {
-                    origin_to_arc_center_vector.to_owned()
-                }
-            })
+            .map(
+                |(
+                    (origin_to_arc_center_vector, delta_angle),
+                    (current_module_odometry, last_frame_module_odometry),
+                )| {
+                    if delta_angle.get::<radian>().abs() < ARC_ODOMETRY_MINIMUM_DELTA_ANGLE_RADIANS
+                        || delta_angle.get::<radian>().is_nan()
+                    {
+                        vector![
+                            current_module_odometry.total_distance_traveled
+                                - last_frame_module_odometry.total_distance_traveled,
+                            current_module_odometry.total_distance_traveled
+                                - last_frame_module_odometry.total_distance_traveled
+                        ]
+                    } else {
+                        origin_to_arc_center_vector.to_owned()
+                    }
+                },
+            )
             .collect();
     }
 
-    fn update_odo(&mut self) {
-
-
-    }
+    fn update_odo(&mut self) {}
 }
 
 /// ## Calculates the changes in angle and distance between the current ModuleOdometry and the ModuleOdometry from last frame.
-fn calculate_differences(current_module_odo: &Vec<ModuleOdometry>, last_frame_module_odo: &Vec<ModuleOdometry>) -> (Vec<Angle>, Vec<Length>) {
+fn calculate_differences(
+    current_module_odo: &Vec<ModuleOdometry>,
+    last_frame_module_odo: &Vec<ModuleOdometry>,
+) -> (Vec<Angle>, Vec<Length>) {
     let delta_angle: Vec<Angle> = current_module_odo
         .iter()
         .zip(last_frame_module_odo.clone()) // Data structure is now: Iterator<(Current ModuleOdometry, Old ModuleOdometry)>
@@ -236,33 +236,56 @@ fn calculate_differences(current_module_odo: &Vec<ModuleOdometry>, last_frame_mo
         .iter()
         .zip(last_frame_module_odo) // Data structure is now: Iterator<(Current ModuleOdometry, Old ModuleOdometry)>
         .map(|(current_module_odometry, last_frame_module_odometry)| {
-            current_module_odometry.total_distance_traveled - last_frame_module_odometry.total_distance_traveled
+            current_module_odometry.total_distance_traveled
+                - last_frame_module_odometry.total_distance_traveled
         })
         .collect();
 
     (delta_angle, delta_distance)
 }
 
-
-
 #[cfg(test)]
 mod tests {
-    use uom::si::angle::{degree};
     use super::*;
+    use uom::si::angle::degree;
     #[test]
     fn delta_angle() {
         let len0 = Length::new::<inch>(0.0);
         let current_module_odo = [
-            ModuleOdometry {total_distance_traveled: len0, current_angle: Angle::new::<degree>(90.0)},
-            ModuleOdometry {total_distance_traveled: len0, current_angle: Angle::new::<degree>(0.0)},
-            ModuleOdometry {total_distance_traveled: len0, current_angle: Angle::new::<degree>(180.0)},
-            ModuleOdometry {total_distance_traveled: len0, current_angle: Angle::new::<degree>(0.0)},
+            ModuleOdometry {
+                total_distance_traveled: len0,
+                current_angle: Angle::new::<degree>(90.0),
+            },
+            ModuleOdometry {
+                total_distance_traveled: len0,
+                current_angle: Angle::new::<degree>(0.0),
+            },
+            ModuleOdometry {
+                total_distance_traveled: len0,
+                current_angle: Angle::new::<degree>(180.0),
+            },
+            ModuleOdometry {
+                total_distance_traveled: len0,
+                current_angle: Angle::new::<degree>(0.0),
+            },
         ];
         let last_frame_module_odo = [
-            ModuleOdometry {total_distance_traveled: len0, current_angle: Angle::new::<degree>(0.0)},
-            ModuleOdometry {total_distance_traveled: len0, current_angle: Angle::new::<degree>(90.0)},
-            ModuleOdometry {total_distance_traveled: len0, current_angle: Angle::new::<degree>(0.0)},
-            ModuleOdometry {total_distance_traveled: len0, current_angle: Angle::new::<degree>(180.0)},
+            ModuleOdometry {
+                total_distance_traveled: len0,
+                current_angle: Angle::new::<degree>(0.0),
+            },
+            ModuleOdometry {
+                total_distance_traveled: len0,
+                current_angle: Angle::new::<degree>(90.0),
+            },
+            ModuleOdometry {
+                total_distance_traveled: len0,
+                current_angle: Angle::new::<degree>(0.0),
+            },
+            ModuleOdometry {
+                total_distance_traveled: len0,
+                current_angle: Angle::new::<degree>(180.0),
+            },
         ];
 
         let delta_angle: Vec<Angle> = current_module_odo
@@ -273,8 +296,21 @@ mod tests {
             })
             .collect();
 
-
-        println!("{:?}, {:?}, {:?}, {:?},", delta_angle[0].get::<degree>(), delta_angle[1].get::<degree>(), delta_angle[2].get::<degree>(), delta_angle[3].get::<degree>());
-        assert_eq!(delta_angle, [Angle::new::<degree>(90.0), Angle::new::<degree>(-90.0), Angle::new::<degree>(180.0), Angle::new::<degree>(-180.0)]);
+        println!(
+            "{:?}, {:?}, {:?}, {:?},",
+            delta_angle[0].get::<degree>(),
+            delta_angle[1].get::<degree>(),
+            delta_angle[2].get::<degree>(),
+            delta_angle[3].get::<degree>()
+        );
+        assert_eq!(
+            delta_angle,
+            [
+                Angle::new::<degree>(90.0),
+                Angle::new::<degree>(-90.0),
+                Angle::new::<degree>(180.0),
+                Angle::new::<degree>(-180.0)
+            ]
+        );
     }
 }

@@ -5,11 +5,11 @@ use crate::constants::robotmap::drivetrain_map::{
     FL_DRIVE_ID, FL_ENCODER_ID, FL_TURN_ID, FR_DRIVE_ID, FR_ENCODER_ID, FR_TURN_ID, GYRO_ID,
 };
 use crate::subsystems::swerve::kinematics::Kinematics;
+use crate::subsystems::swerve::odometry::{Odometry, RobotPoseEstimate};
 use frcrs::ctre::{CanCoder, ControlMode, Pigeon, Talon};
 use nalgebra::{Rotation2, Vector2, vector};
 use uom::si::angle::{degree, revolution};
 use uom::si::f64::Angle;
-use crate::subsystems::swerve::odometry::{Odometry, RobotPoseEstimate};
 
 /// Drivetrain struct.
 /// kinematics field interfaces with inverse kinematics functions.
@@ -22,7 +22,6 @@ pub struct Drivetrain {
     motor_encoder_offsets: [Angle; 4],
 
     //pub(crate::subsystems::swerve) makes this pub to everything in crate::subsystems::swerve
-
     fl_encoder: CanCoder,
     pub(in crate::subsystems::swerve) fl_drive: Talon,
     pub(in crate::subsystems::swerve) fl_turn: Talon,
@@ -122,7 +121,7 @@ impl Drivetrain {
         //iterate through the setpoints and current angles
         setpoints
             .into_iter()
-            .zip(measured_angles.into_iter())
+            .zip(measured_angles)
             .map(|((mut speed, target_angle), current_angle)| {
                 //convert both angles to degrees for comparison
                 let target_angle = target_angle.get::<degree>();
