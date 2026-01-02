@@ -159,11 +159,6 @@ impl Drivetrain {
 
         field_oriented_delta_pose
     }
-
-    /// Make sure this is called AFTER update_pose is called in control_drivetrain. DO NOT just add an update_pos call.
-    pub fn get_robot_pose(&self) -> RobotPoseEstimate {
-        self.odometry.pose_estimate.clone()
-    }
 }
 
 /// ## Calculates each swerve module on the robot has moved since the last time this function was called, and a FOM.
