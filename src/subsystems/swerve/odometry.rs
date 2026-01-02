@@ -291,12 +291,10 @@ fn module_level_arc_odometry(
     let average_arc_length_meters_as_f64 = sum_arc_length_meters_as_f64 / arc_length.len() as f64;
 
     //
-    let mut figure_of_merit = 0.0;
-    if average_arc_length_meters_as_f64 != 0.0 {
-        figure_of_merit = 1.0 / ((ARC_ODOMETRY_FOM_DAMPENING) * average_arc_length_meters_as_f64 + 1.0);
-    } else {
-        figure_of_merit = 1.0;
-    }
+
+    // Look at graph of 1/(ax+1). A (ARC_ODOMETRY_FOM_DAMPENING) dampens higher values of x (avg. arc length), and the +1 makes sure y=1 for x=0.
+    let figure_of_merit = 1.0 / ((ARC_ODOMETRY_FOM_DAMPENING) * average_arc_length_meters_as_f64 + 1.0);
+
 
     (delta_pose, figure_of_merit)
 }
