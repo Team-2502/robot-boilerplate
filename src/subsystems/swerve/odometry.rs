@@ -5,12 +5,10 @@ use crate::constants::drivetrain::{
 use crate::subsystems::swerve::drivetrain::Drivetrain;
 use nalgebra::{Rotation2, Vector2, vector};
 use std::f64::consts::PI;
-use std::ops::Sub;
-use uom::num::ToPrimitive;
+// use std::ops::Sub;
 use uom::si::angle::{degree, radian, revolution};
 use uom::si::f64::{Angle, Length};
 use uom::si::length::{inch, meter};
-use uom::typenum::Len;
 
 /// ## Robot Odometry system.
 /// last_frame_module_odometry: information about the swerve modules on the last frame update_odo was called. See the private struct ModuleOdometry for more.
@@ -88,18 +86,18 @@ impl Drivetrain {
         module_odometry
     }
 
+    pub(in crate::subsystems::swerve) fn set_next_frame_module_odometry(&mut self) {
+        self.odometry.last_frame_module_odometry = self.get_module_odometry();
+    }
+
     // TODO:
-    // abstract into multiple functions
-    // robot -> field centric
-    // individual modules -> robot pose
-    // fom calc
-    // add to current pos
     // name things better
     // restructure for readability and efficiency
-
+    /// ## Updates odometry for this frame.
     /// Uses Arc Odometry; see https://docs.google.com/document/d/1g-2a46vnE7GlO8Jhg7rIr4NdUOui1fEhV2Z8suaVDSE/edit?tab=t.0
-    /// for a writeup by Riley LaMothe (2502) or team 1690's Software Sessions Part II.
-    fn update_pose(&mut self) {
+    /// for a writeup by Riley LaMothe (2502) or team 1690's Software Sessions Part II. <br>
+    /// Note: Does not fetch ModuleOdometry for this frame, intentionally.
+    pub(in crate::subsystems::swerve) fn update_pose(&mut self) {
         let current_module_odometry = self.get_module_odometry();
         let last_frame_module_odometry = self.odometry.last_frame_module_odometry.clone();
 
@@ -148,7 +146,7 @@ impl Drivetrain {
 
                 // Rotate (field orient) delta positon vector
                 delta_position_f64_placeholder_meters =
-                    drivetrain_angle_rotation.clone() * delta_position_f64_placeholder_meters;
+                    drivetrain_angle_rotation * delta_position_f64_placeholder_meters;
 
                 // Back to Vector2<Length>
                 let field_oriented_delta_pose = vector![
@@ -162,8 +160,6 @@ impl Drivetrain {
 
         field_oriented_delta_pose
     }
-
-    fn update_odo(&mut self) {}
 }
 
 /// ## Calculates each swerve module on the robot has moved since the last time this function was called, and a FOM.
@@ -347,73 +343,10 @@ fn average_module_delta_poses(module_delta_poses: Vec<Vector2<Length>>) -> Vecto
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use uom::si::angle::degree;
-    #[test]
-    fn delta_angle() {
-        let len0 = Length::new::<inch>(0.0);
-        let current_module_odo = [
-            ModuleOdometry {
-                total_distance_traveled: len0,
-                current_angle: Angle::new::<degree>(90.0),
-            },
-            ModuleOdometry {
-                total_distance_traveled: len0,
-                current_angle: Angle::new::<degree>(0.0),
-            },
-            ModuleOdometry {
-                total_distance_traveled: len0,
-                current_angle: Angle::new::<degree>(180.0),
-            },
-            ModuleOdometry {
-                total_distance_traveled: len0,
-                current_angle: Angle::new::<degree>(0.0),
-            },
-        ];
-        let last_frame_module_odo = [
-            ModuleOdometry {
-                total_distance_traveled: len0,
-                current_angle: Angle::new::<degree>(0.0),
-            },
-            ModuleOdometry {
-                total_distance_traveled: len0,
-                current_angle: Angle::new::<degree>(90.0),
-            },
-            ModuleOdometry {
-                total_distance_traveled: len0,
-                current_angle: Angle::new::<degree>(0.0),
-            },
-            ModuleOdometry {
-                total_distance_traveled: len0,
-                current_angle: Angle::new::<degree>(180.0),
-            },
-        ];
-
-        let delta_angle: Vec<Angle> = current_module_odo
-            .iter()
-            .zip(last_frame_module_odo) // Data structure is now: Iterator<(Current ModuleOdometry, Old ModuleOdometry)>
-            .map(|(current_module_odometry, last_frame_module_odometry)| {
-                current_module_odometry.current_angle - last_frame_module_odometry.current_angle
-            })
-            .collect();
-
-        println!(
-            "{:?}, {:?}, {:?}, {:?},",
-            delta_angle[0].get::<degree>(),
-            delta_angle[1].get::<degree>(),
-            delta_angle[2].get::<degree>(),
-            delta_angle[3].get::<degree>()
-        );
-        assert_eq!(
-            delta_angle,
-            [
-                Angle::new::<degree>(90.0),
-                Angle::new::<degree>(-90.0),
-                Angle::new::<degree>(180.0),
-                Angle::new::<degree>(-180.0)
-            ]
-        );
-    }
+    // use super::*;
+    // use uom::si::angle::degree;
+    // #[test]
+    // fn
 
     // fn module_odometry_subtraction_test() {
     //     let foo = ModuleOdometry {

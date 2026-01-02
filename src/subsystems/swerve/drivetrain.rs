@@ -183,6 +183,9 @@ impl Drivetrain {
     /// Control the drivetrain.
     /// x, y, and rotation are driverstation inputs.
     pub fn control_drivetrain(&mut self, x: f64, y: f64, rotation: f64) {
+        // Updates drivetrain.odometry.pose_estimate.
+        self.update_pose();
+
         let target_transformation = match config::FIELD_ORIENTED {
             true => self.field_orientate(vector![x, y]),
             false => vector![x, y],
@@ -191,5 +194,7 @@ impl Drivetrain {
         let targets = self.kinematics.get_targets(target_transformation, rotation);
         let optimized_targets = self.optimize_setpoints(targets);
         self.set_speed(optimized_targets);
+
+        self.set_next_frame_module_odometry();
     }
 }
