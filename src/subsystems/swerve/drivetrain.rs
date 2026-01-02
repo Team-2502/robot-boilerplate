@@ -4,41 +4,45 @@ use crate::constants::robotmap::drivetrain_map::{
     BL_DRIVE_ID, BL_ENCODER_ID, BL_TURN_ID, BR_DRIVE_ID, BR_ENCODER_ID, DRIVETRAIN_CANBUS,
     FL_DRIVE_ID, FL_ENCODER_ID, FL_TURN_ID, FR_DRIVE_ID, FR_ENCODER_ID, FR_TURN_ID, GYRO_ID,
 };
-use crate::swerve::kinematics::Kinematics;
+use crate::subsystems::swerve::kinematics::Kinematics;
 use frcrs::ctre::{CanCoder, ControlMode, Pigeon, Talon};
 use nalgebra::{Rotation2, Vector2, vector};
 use uom::si::angle::{degree, revolution};
 use uom::si::f64::Angle;
+use crate::subsystems::swerve::odometry::{Odometry, RobotPoseEstimate};
 
 /// Drivetrain struct.
 /// kinematics field interfaces with inverse kinematics functions.
 /// motor_encoder_offsets are the absolute positions of the CANCoders on startup. These allow us to start the robot without physically zeroing the wheels.
 pub struct Drivetrain {
     kinematics: Kinematics,
+    pub odometry: Odometry,
     gyro: Pigeon,
 
     motor_encoder_offsets: [Angle; 4],
 
+    //pub(crate::subsystems::swerve) makes this pub to everything in crate::subsystems::swerve
+
     fl_encoder: CanCoder,
-    fl_drive: Talon,
-    fl_turn: Talon,
+    pub(in crate::subsystems::swerve) fl_drive: Talon,
+    pub(in crate::subsystems::swerve) fl_turn: Talon,
 
     bl_encoder: CanCoder,
-    bl_drive: Talon,
-    bl_turn: Talon,
+    pub(in crate::subsystems::swerve) bl_drive: Talon,
+    pub(in crate::subsystems::swerve) bl_turn: Talon,
 
     br_encoder: CanCoder,
-    br_drive: Talon,
-    br_turn: Talon,
+    pub(in crate::subsystems::swerve) br_drive: Talon,
+    pub(in crate::subsystems::swerve) br_turn: Talon,
 
     fr_encoder: CanCoder,
-    fr_drive: Talon,
-    fr_turn: Talon,
+    pub(in crate::subsystems::swerve) fr_drive: Talon,
+    pub(in crate::subsystems::swerve) fr_turn: Talon,
 }
 
 impl Drivetrain {
     /// Returns a new Drivetrain. CAN IDs and CanBus set in constants::robotmap::drivetrain_map
-    pub fn new() -> Drivetrain {
+    pub fn new(starting_pose: RobotPoseEstimate) -> Drivetrain {
         // make the encoders before rest of robot - we need them to get CANCoder offsets
         let fl_encoder = CanCoder::new(FL_ENCODER_ID, DRIVETRAIN_CANBUS);
         let bl_encoder = CanCoder::new(BL_ENCODER_ID, DRIVETRAIN_CANBUS);
@@ -55,6 +59,7 @@ impl Drivetrain {
 
         Drivetrain {
             kinematics: Kinematics::new(),
+            odometry: Odometry::new(starting_pose),
             gyro: Pigeon::new(GYRO_ID, DRIVETRAIN_CANBUS),
             motor_encoder_offsets,
 
@@ -107,7 +112,7 @@ impl Drivetrain {
     /// For example, instead of turning to 135 degrees from 0 degrees, turn to -45 degrees and invert speed.
     fn optimize_setpoints(&self, setpoints: Vec<(f64, Angle)>) -> Vec<(f64, Angle)> {
         // get angles, account for non-zero starting angle
-        let mut measured_angles = vec![
+        let measured_angles = vec![
             Angle::new::<revolution>(self.fl_turn.get_position()) + self.motor_encoder_offsets[0],
             Angle::new::<revolution>(self.bl_turn.get_position()) + self.motor_encoder_offsets[1],
             Angle::new::<revolution>(self.br_turn.get_position()) + self.motor_encoder_offsets[2],
@@ -123,7 +128,7 @@ impl Drivetrain {
                 let target_angle = target_angle.get::<degree>();
                 let current = current_angle.get::<degree>();
 
-                //calculate shortest angular difference between target and current
+                //calculate the shortest angular difference between target and current
                 let mut difference = (target_angle - current + 180.0) % 360.0 - 180.0;
                 if difference < -180.0 {
                     difference += 360.0;

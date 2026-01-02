@@ -67,4 +67,6 @@ pub mod pose_estimation {
 
 pub mod drivetrain {
     pub const SWERVE_TURN_RATIO: f64 = 12.8;
+    pub const SWERVE_DRIVE_RATIO: f64 = 1.0;
+    pub const SWERVE_WHEEL_DIAMETER_INCHES: f64 = 1.0;
 }
