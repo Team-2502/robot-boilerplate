@@ -528,6 +528,7 @@ mod tests {
 
     mod module_level_arc_odometry_tests {
         use super::*;
+        use std::f64::consts::FRAC_2_PI;
 
         #[test]
         fn all_t45_al1() {
@@ -1648,20 +1649,20 @@ mod tests {
             let expected = (
                 vec![
                     vector![
-                        Length::new::<meter>(0.63661977),
-                        Length::new::<meter>(0.63661977)
+                        Length::new::<meter>(FRAC_2_PI),
+                        Length::new::<meter>(FRAC_2_PI)
                     ],
                     vector![
-                        Length::new::<meter>(0.63661977),
-                        Length::new::<meter>(0.63661977)
+                        Length::new::<meter>(FRAC_2_PI),
+                        Length::new::<meter>(FRAC_2_PI)
                     ],
                     vector![
-                        Length::new::<meter>(0.63661977),
-                        Length::new::<meter>(0.63661977)
+                        Length::new::<meter>(FRAC_2_PI),
+                        Length::new::<meter>(FRAC_2_PI)
                     ],
                     vector![
-                        Length::new::<meter>(0.63661977),
-                        Length::new::<meter>(0.63661977)
+                        Length::new::<meter>(FRAC_2_PI),
+                        Length::new::<meter>(FRAC_2_PI)
                     ],
                 ],
                 1.0,
@@ -1835,10 +1836,10 @@ mod tests {
 
             let expected = (
                 vec![
-                    vector![Length::new::<meter>(0.0), Length::new::<meter>(0.63661977)],
-                    vector![Length::new::<meter>(0.0), Length::new::<meter>(0.63661977)],
-                    vector![Length::new::<meter>(0.0), Length::new::<meter>(0.63661977)],
-                    vector![Length::new::<meter>(0.0), Length::new::<meter>(0.63661977)],
+                    vector![Length::new::<meter>(0.0), Length::new::<meter>(FRAC_2_PI)],
+                    vector![Length::new::<meter>(0.0), Length::new::<meter>(FRAC_2_PI)],
+                    vector![Length::new::<meter>(0.0), Length::new::<meter>(FRAC_2_PI)],
+                    vector![Length::new::<meter>(0.0), Length::new::<meter>(FRAC_2_PI)],
                 ],
                 1.0,
             );
