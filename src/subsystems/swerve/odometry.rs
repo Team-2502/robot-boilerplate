@@ -1,4 +1,7 @@
-use crate::constants::drivetrain::{ARC_ODOMETRY_FOM_DAMPENING, ARC_ODOMETRY_MINIMUM_DELTA_ANGLE_RADIANS, SWERVE_DRIVE_RATIO, SWERVE_WHEEL_DIAMETER_INCHES};
+use crate::constants::drivetrain::{
+    ARC_ODOMETRY_FOM_DAMPENING, ARC_ODOMETRY_MINIMUM_DELTA_ANGLE_RADIANS, SWERVE_DRIVE_RATIO,
+    SWERVE_WHEEL_DIAMETER_INCHES,
+};
 use crate::subsystems::swerve::drivetrain::Drivetrain;
 use nalgebra::{Rotation2, Vector2, vector};
 use std::f64::consts::PI;
@@ -203,35 +206,39 @@ fn module_level_arc_odometry(
         .clone()
         .iter()
         .zip(delta_angle.iter().zip(arc_radius.iter()))
-        .zip(arc_length.clone().iter())// Data structure is: Iterator<(Old ModuleOdometry, (delta_angle, arc_radius))>, that's what gets passed to the closure
-        .map(|((last_frame_module_odometry, (delta_angle, arc_radius)), arc_length)| {
-            // Check if center is to left or right
-            let mut origin_to_arc_center_angle = last_frame_module_odometry.current_angle;
+        .zip(arc_length.clone().iter()) // Data structure is: Iterator<(Old ModuleOdometry, (delta_angle, arc_radius))>, that's what gets passed to the closure
+        .map(
+            |((last_frame_module_odometry, (delta_angle, arc_radius)), arc_length)| {
+                // Check if center is to left or right
+                let mut origin_to_arc_center_angle = last_frame_module_odometry.current_angle;
 
-            if arc_length.get::<meter>() > 0.0 {
-                if delta_angle.get::<radian>() < 0.0 {
-                    origin_to_arc_center_angle -= Angle::new::<degree>(90.0);
-                } else {
+                if arc_length.get::<meter>() > 0.0 {
+                    if delta_angle.get::<radian>() < 0.0 {
+                        origin_to_arc_center_angle -= Angle::new::<degree>(90.0);
+                    } else {
+                        origin_to_arc_center_angle += Angle::new::<degree>(90.0);
+                    }
+                } else if delta_angle.get::<radian>() < 0.0 {
                     origin_to_arc_center_angle += Angle::new::<degree>(90.0);
-                }
-            } else {
-                if delta_angle.get::<radian>() < 0.0 {
-                    origin_to_arc_center_angle += Angle::new::<degree>(90.0);
                 } else {
                     origin_to_arc_center_angle -= Angle::new::<degree>(90.0);
                 }
-            }
 
+                // DEBUG
+                println!(
+                    "origin_to_arc_center_angle {:?}",
+                    origin_to_arc_center_angle.get::<degree>()
+                );
 
-            // DEBUG
-            println!("origin_to_arc_center_angle {:?}", origin_to_arc_center_angle.get::<degree>());
-
-            // Construct the vector with trig functions
-            vector![
-                Length::new::<meter>(arc_radius.get::<meter>()) * origin_to_arc_center_angle.cos(),
-                Length::new::<meter>(arc_radius.get::<meter>()) * origin_to_arc_center_angle.sin(),
-            ]
-        })
+                // Construct the vector with trig functions
+                vector![
+                    Length::new::<meter>(arc_radius.get::<meter>())
+                        * origin_to_arc_center_angle.cos(),
+                    Length::new::<meter>(arc_radius.get::<meter>())
+                        * origin_to_arc_center_angle.sin(),
+                ]
+            },
+        )
         .collect();
 
     // DEBUG
@@ -250,46 +257,49 @@ fn module_level_arc_odometry(
         .clone()
         .iter()
         .zip(delta_angle.clone().iter().zip(arc_radius.iter()))
-        .zip(arc_length.clone().iter())// Data structure is: Iterator<(Current ModuleOdometry, (delta_angle, arc_radius))>, that's what gets passed to the closure
-        .map(|((current_module_odometry, (delta_angle, arc_radius)), arc_length)| {
-            // Check if center is to left or right
-            let mut endpoint_to_arc_center_angle = current_module_odometry.current_angle;
+        .zip(arc_length.clone().iter()) // Data structure is: Iterator<(Current ModuleOdometry, (delta_angle, arc_radius))>, that's what gets passed to the closure
+        .map(
+            |((current_module_odometry, (delta_angle, arc_radius)), arc_length)| {
+                // Check if center is to left or right
+                let mut endpoint_to_arc_center_angle = current_module_odometry.current_angle;
 
-            // CHANGED from -+ to ++
+                // CHANGED from -+ to ++
 
-            if arc_length.get::<meter>() > 0.0 {
-                if delta_angle.get::<radian>() < 0.0 {
-                    endpoint_to_arc_center_angle -= Angle::new::<degree>(90.0);
-                } else {
+                if arc_length.get::<meter>() > 0.0 {
+                    if delta_angle.get::<radian>() < 0.0 {
+                        endpoint_to_arc_center_angle -= Angle::new::<degree>(90.0);
+                    } else {
+                        endpoint_to_arc_center_angle += Angle::new::<degree>(90.0);
+                    }
+                } else if delta_angle.get::<radian>() < 0.0 {
                     endpoint_to_arc_center_angle += Angle::new::<degree>(90.0);
-                }
-            } else {
-                if delta_angle.get::<radian>() < 0.0 {
-                    endpoint_to_arc_center_angle += Angle::new::<degree>(90.0);
                 } else {
                     endpoint_to_arc_center_angle -= Angle::new::<degree>(90.0);
                 }
-            }
 
-            // if delta_angle.get::<radian>() < 0.0 {
-            //     endpoint_to_arc_center_angle += Angle::new::<degree>(90.0);
-            // } else {
-            //     endpoint_to_arc_center_angle += Angle::new::<degree>(90.0);
-            // }
+                // if delta_angle.get::<radian>() < 0.0 {
+                //     endpoint_to_arc_center_angle += Angle::new::<degree>(90.0);
+                // } else {
+                //     endpoint_to_arc_center_angle += Angle::new::<degree>(90.0);
+                // }
 
-            // DEBUG
-            println!("endpoint_to_arc_center_angle {:?}", endpoint_to_arc_center_angle.get::<degree>());
+                // DEBUG
+                println!(
+                    "endpoint_to_arc_center_angle {:?}",
+                    endpoint_to_arc_center_angle.get::<degree>()
+                );
 
-            // Construct the vector with trig functions - Notice the negative signs in front, this changes the vector from
-            // Endpoint -> Center to
-            // Center -> Endpoint
-            vector![
-                -Length::new::<meter>(arc_radius.get::<meter>())
-                    * endpoint_to_arc_center_angle.cos(),
-                -Length::new::<meter>(arc_radius.get::<meter>())
-                    * endpoint_to_arc_center_angle.sin(),
-            ]
-        })
+                // Construct the vector with trig functions - Notice the negative signs in front, this changes the vector from
+                // Endpoint -> Center to
+                // Center -> Endpoint
+                vector![
+                    -Length::new::<meter>(arc_radius.get::<meter>())
+                        * endpoint_to_arc_center_angle.cos(),
+                    -Length::new::<meter>(arc_radius.get::<meter>())
+                        * endpoint_to_arc_center_angle.sin(),
+                ]
+            },
+        )
         .collect();
 
     // DEBUG
@@ -337,9 +347,11 @@ fn module_level_arc_odometry(
                 {
                     vector![
                         (current_module_odometry.total_distance_traveled
-                            - last_frame_module_odometry.total_distance_traveled) * current_module_odometry.current_angle.cos(),
+                            - last_frame_module_odometry.total_distance_traveled)
+                            * current_module_odometry.current_angle.cos(),
                         (current_module_odometry.total_distance_traveled
-                            - last_frame_module_odometry.total_distance_traveled) * current_module_odometry.current_angle.sin(),
+                            - last_frame_module_odometry.total_distance_traveled)
+                            * current_module_odometry.current_angle.sin(),
                     ]
                 } else {
                     origin_to_endpoint_vector.to_owned()
@@ -356,7 +368,8 @@ fn module_level_arc_odometry(
     let average_arc_length_meters_as_f64 = sum_arc_length_meters_as_f64 / arc_length.len() as f64;
 
     // Look at graph of 1/(ax+1). A (ARC_ODOMETRY_FOM_DAMPENING) dampens higher values of x (avg. arc length), and the +1 makes sure y=1 for x=0.
-    let figure_of_merit = 1.0 / ((ARC_ODOMETRY_FOM_DAMPENING) * average_arc_length_meters_as_f64 + 1.0);
+    let figure_of_merit =
+        1.0 / ((ARC_ODOMETRY_FOM_DAMPENING) * average_arc_length_meters_as_f64 + 1.0);
 
     (delta_pose, figure_of_merit)
 }
@@ -407,8 +420,8 @@ fn average_module_delta_poses(module_delta_poses: Vec<Vector2<Length>>) -> Vecto
 
 #[cfg(test)]
 mod tests {
-    use float_cmp::assert_approx_eq;
     use super::*;
+    use float_cmp::assert_approx_eq;
     use uom::si::angle::degree;
 
     #[test]
@@ -417,48 +430,55 @@ mod tests {
             ModuleOdometry {
                 total_distance_traveled: Length::new::<meter>(50.0),
                 current_angle: Angle::new::<degree>(90.0),
-            }, ModuleOdometry {
+            },
+            ModuleOdometry {
                 total_distance_traveled: Length::new::<meter>(0.0),
                 current_angle: Angle::new::<degree>(0.0),
-            }, ModuleOdometry {
+            },
+            ModuleOdometry {
                 total_distance_traveled: Length::new::<meter>(-50.0),
                 current_angle: Angle::new::<degree>(-90.0),
-            }, ModuleOdometry {
+            },
+            ModuleOdometry {
                 total_distance_traveled: Length::new::<meter>(100.0),
                 current_angle: Angle::new::<degree>(0.0),
-            }
+            },
         ];
 
         let bar = vec![
             ModuleOdometry {
                 total_distance_traveled: Length::new::<meter>(10.0),
                 current_angle: Angle::new::<degree>(45.0),
-            }, ModuleOdometry {
+            },
+            ModuleOdometry {
                 total_distance_traveled: Length::new::<meter>(50.0),
                 current_angle: Angle::new::<degree>(90.0),
-            }, ModuleOdometry {
+            },
+            ModuleOdometry {
                 total_distance_traveled: Length::new::<meter>(-50.0),
                 current_angle: Angle::new::<degree>(-90.0),
-            }, ModuleOdometry {
+            },
+            ModuleOdometry {
                 total_distance_traveled: Length::new::<meter>(20.0),
                 current_angle: Angle::new::<degree>(30.0),
-            }
+            },
         ];
 
         let results = calculate_differences(&foo, &bar);
 
         let expected = (
-            vec! [
+            vec![
                 Angle::new::<degree>(45.0),
                 Angle::new::<degree>(-90.0),
                 Angle::new::<degree>(0.0),
                 Angle::new::<degree>(-30.0),
-            ], vec! [
+            ],
+            vec![
                 Length::new::<meter>(40.0),
                 Length::new::<meter>(-50.0),
                 Length::new::<meter>(0.0),
                 Length::new::<meter>(80.0),
-            ]
+            ],
         );
 
         assert_eq!(results, expected);
@@ -515,13 +535,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(45.0),
                 },
@@ -531,34 +554,63 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(0.90031632), Length::new::<meter>(0.37292323)],
-                vector![Length::new::<meter>(0.90031632), Length::new::<meter>(0.37292323)],
-                vector![Length::new::<meter>(0.90031632), Length::new::<meter>(0.37292323)],
-                vector![Length::new::<meter>(0.90031632), Length::new::<meter>(0.37292323)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![
+                        Length::new::<meter>(0.90031632),
+                        Length::new::<meter>(0.37292323)
+                    ],
+                    vector![
+                        Length::new::<meter>(0.90031632),
+                        Length::new::<meter>(0.37292323)
+                    ],
+                    vector![
+                        Length::new::<meter>(0.90031632),
+                        Length::new::<meter>(0.37292323)
+                    ],
+                    vector![
+                        Length::new::<meter>(0.90031632),
+                        Length::new::<meter>(0.37292323)
+                    ],
+                ],
+                1.0,
+            );
 
             println!("fom: {}", results.1);
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -577,13 +629,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(-45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(-45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(-45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(-45.0),
                 },
@@ -593,33 +648,62 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(0.90031632), Length::new::<meter>(-0.37292323)],
-                vector![Length::new::<meter>(0.90031632), Length::new::<meter>(-0.37292323)],
-                vector![Length::new::<meter>(0.90031632), Length::new::<meter>(-0.37292323)],
-                vector![Length::new::<meter>(0.90031632), Length::new::<meter>(-0.37292323)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![
+                        Length::new::<meter>(0.90031632),
+                        Length::new::<meter>(-0.37292323)
+                    ],
+                    vector![
+                        Length::new::<meter>(0.90031632),
+                        Length::new::<meter>(-0.37292323)
+                    ],
+                    vector![
+                        Length::new::<meter>(0.90031632),
+                        Length::new::<meter>(-0.37292323)
+                    ],
+                    vector![
+                        Length::new::<meter>(0.90031632),
+                        Length::new::<meter>(-0.37292323)
+                    ],
+                ],
+                1.0,
+            );
 
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -638,13 +722,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
@@ -654,33 +741,50 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(1.0), Length::new::<meter>(0.0)],
-                vector![Length::new::<meter>(1.0), Length::new::<meter>(0.0)],
-                vector![Length::new::<meter>(1.0), Length::new::<meter>(0.0)],
-                vector![Length::new::<meter>(1.0), Length::new::<meter>(0.0)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![Length::new::<meter>(1.0), Length::new::<meter>(0.0)],
+                    vector![Length::new::<meter>(1.0), Length::new::<meter>(0.0)],
+                    vector![Length::new::<meter>(1.0), Length::new::<meter>(0.0)],
+                    vector![Length::new::<meter>(1.0), Length::new::<meter>(0.0)],
+                ],
+                1.0,
+            );
 
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -699,13 +803,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(45.0),
                 },
@@ -715,33 +822,62 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(1.80063263), Length::new::<meter>(0.74584646)],
-                vector![Length::new::<meter>(1.80063263), Length::new::<meter>(0.74584646)],
-                vector![Length::new::<meter>(1.80063263), Length::new::<meter>(0.74584646)],
-                vector![Length::new::<meter>(1.80063263), Length::new::<meter>(0.74584646)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![
+                        Length::new::<meter>(1.80063263),
+                        Length::new::<meter>(0.74584646)
+                    ],
+                    vector![
+                        Length::new::<meter>(1.80063263),
+                        Length::new::<meter>(0.74584646)
+                    ],
+                    vector![
+                        Length::new::<meter>(1.80063263),
+                        Length::new::<meter>(0.74584646)
+                    ],
+                    vector![
+                        Length::new::<meter>(1.80063263),
+                        Length::new::<meter>(0.74584646)
+                    ],
+                ],
+                1.0,
+            );
 
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -760,13 +896,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(-45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(-45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(-45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(-45.0),
                 },
@@ -776,33 +915,62 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(1.80063263), Length::new::<meter>(-0.74584646)],
-                vector![Length::new::<meter>(1.80063263), Length::new::<meter>(-0.74584646)],
-                vector![Length::new::<meter>(1.80063263), Length::new::<meter>(-0.74584646)],
-                vector![Length::new::<meter>(1.80063263), Length::new::<meter>(-0.74584646)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![
+                        Length::new::<meter>(1.80063263),
+                        Length::new::<meter>(-0.74584646)
+                    ],
+                    vector![
+                        Length::new::<meter>(1.80063263),
+                        Length::new::<meter>(-0.74584646)
+                    ],
+                    vector![
+                        Length::new::<meter>(1.80063263),
+                        Length::new::<meter>(-0.74584646)
+                    ],
+                    vector![
+                        Length::new::<meter>(1.80063263),
+                        Length::new::<meter>(-0.74584646)
+                    ],
+                ],
+                1.0,
+            );
 
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -821,13 +989,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
@@ -837,33 +1008,50 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(2.0), Length::new::<meter>(0.0)],
-                vector![Length::new::<meter>(2.0), Length::new::<meter>(0.0)],
-                vector![Length::new::<meter>(2.0), Length::new::<meter>(0.0)],
-                vector![Length::new::<meter>(2.0), Length::new::<meter>(0.0)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![Length::new::<meter>(2.0), Length::new::<meter>(0.0)],
+                    vector![Length::new::<meter>(2.0), Length::new::<meter>(0.0)],
+                    vector![Length::new::<meter>(2.0), Length::new::<meter>(0.0)],
+                    vector![Length::new::<meter>(2.0), Length::new::<meter>(0.0)],
+                ],
+                1.0,
+            );
 
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -882,13 +1070,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-1.0),
                     current_angle: Angle::new::<degree>(45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-1.0),
                     current_angle: Angle::new::<degree>(45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-1.0),
                     current_angle: Angle::new::<degree>(45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-1.0),
                     current_angle: Angle::new::<degree>(45.0),
                 },
@@ -898,34 +1089,63 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(-0.37292323)],
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(-0.37292323)],
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(-0.37292323)],
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(-0.37292323)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![
+                        Length::new::<meter>(-0.90031632),
+                        Length::new::<meter>(-0.37292323)
+                    ],
+                    vector![
+                        Length::new::<meter>(-0.90031632),
+                        Length::new::<meter>(-0.37292323)
+                    ],
+                    vector![
+                        Length::new::<meter>(-0.90031632),
+                        Length::new::<meter>(-0.37292323)
+                    ],
+                    vector![
+                        Length::new::<meter>(-0.90031632),
+                        Length::new::<meter>(-0.37292323)
+                    ],
+                ],
+                1.0,
+            );
 
             println!("fom: {}", results.1);
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -944,13 +1164,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-1.0),
                     current_angle: Angle::new::<degree>(-45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-1.0),
                     current_angle: Angle::new::<degree>(-45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-1.0),
                     current_angle: Angle::new::<degree>(-45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-1.0),
                     current_angle: Angle::new::<degree>(-45.0),
                 },
@@ -960,33 +1183,62 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(0.37292323)],
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(0.37292323)],
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(0.37292323)],
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(0.37292323)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![
+                        Length::new::<meter>(-0.90031632),
+                        Length::new::<meter>(0.37292323)
+                    ],
+                    vector![
+                        Length::new::<meter>(-0.90031632),
+                        Length::new::<meter>(0.37292323)
+                    ],
+                    vector![
+                        Length::new::<meter>(-0.90031632),
+                        Length::new::<meter>(0.37292323)
+                    ],
+                    vector![
+                        Length::new::<meter>(-0.90031632),
+                        Length::new::<meter>(0.37292323)
+                    ],
+                ],
+                1.0,
+            );
 
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -1005,13 +1257,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-1.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-1.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-1.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-1.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
@@ -1021,33 +1276,50 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(-1.0), Length::new::<meter>(0.0)],
-                vector![Length::new::<meter>(-1.0), Length::new::<meter>(0.0)],
-                vector![Length::new::<meter>(-1.0), Length::new::<meter>(0.0)],
-                vector![Length::new::<meter>(-1.0), Length::new::<meter>(0.0)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![Length::new::<meter>(-1.0), Length::new::<meter>(0.0)],
+                    vector![Length::new::<meter>(-1.0), Length::new::<meter>(0.0)],
+                    vector![Length::new::<meter>(-1.0), Length::new::<meter>(0.0)],
+                    vector![Length::new::<meter>(-1.0), Length::new::<meter>(0.0)],
+                ],
+                1.0,
+            );
 
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -1066,13 +1338,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-2.0),
                     current_angle: Angle::new::<degree>(45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-2.0),
                     current_angle: Angle::new::<degree>(45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-2.0),
                     current_angle: Angle::new::<degree>(45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-2.0),
                     current_angle: Angle::new::<degree>(45.0),
                 },
@@ -1082,34 +1357,63 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(-1.80063263), Length::new::<meter>(-0.74584646)],
-                vector![Length::new::<meter>(-1.80063263), Length::new::<meter>(-0.74584646)],
-                vector![Length::new::<meter>(-1.80063263), Length::new::<meter>(-0.74584646)],
-                vector![Length::new::<meter>(-1.80063263), Length::new::<meter>(-0.74584646)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![
+                        Length::new::<meter>(-1.80063263),
+                        Length::new::<meter>(-0.74584646)
+                    ],
+                    vector![
+                        Length::new::<meter>(-1.80063263),
+                        Length::new::<meter>(-0.74584646)
+                    ],
+                    vector![
+                        Length::new::<meter>(-1.80063263),
+                        Length::new::<meter>(-0.74584646)
+                    ],
+                    vector![
+                        Length::new::<meter>(-1.80063263),
+                        Length::new::<meter>(-0.74584646)
+                    ],
+                ],
+                1.0,
+            );
 
             println!("fom: {}", results.1);
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -1128,13 +1432,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-2.0),
                     current_angle: Angle::new::<degree>(-45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-2.0),
                     current_angle: Angle::new::<degree>(-45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-2.0),
                     current_angle: Angle::new::<degree>(-45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-2.0),
                     current_angle: Angle::new::<degree>(-45.0),
                 },
@@ -1144,33 +1451,62 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(-1.80063263), Length::new::<meter>(0.74584646)],
-                vector![Length::new::<meter>(-1.80063263), Length::new::<meter>(0.74584646)],
-                vector![Length::new::<meter>(-1.80063263), Length::new::<meter>(0.74584646)],
-                vector![Length::new::<meter>(-1.80063263), Length::new::<meter>(0.74584646)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![
+                        Length::new::<meter>(-1.80063263),
+                        Length::new::<meter>(0.74584646)
+                    ],
+                    vector![
+                        Length::new::<meter>(-1.80063263),
+                        Length::new::<meter>(0.74584646)
+                    ],
+                    vector![
+                        Length::new::<meter>(-1.80063263),
+                        Length::new::<meter>(0.74584646)
+                    ],
+                    vector![
+                        Length::new::<meter>(-1.80063263),
+                        Length::new::<meter>(0.74584646)
+                    ],
+                ],
+                1.0,
+            );
 
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -1189,13 +1525,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-2.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-2.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-2.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(-2.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
@@ -1205,33 +1544,50 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(-2.0), Length::new::<meter>(0.0)],
-                vector![Length::new::<meter>(-2.0), Length::new::<meter>(0.0)],
-                vector![Length::new::<meter>(-2.0), Length::new::<meter>(0.0)],
-                vector![Length::new::<meter>(-2.0), Length::new::<meter>(0.0)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![Length::new::<meter>(-2.0), Length::new::<meter>(0.0)],
+                    vector![Length::new::<meter>(-2.0), Length::new::<meter>(0.0)],
+                    vector![Length::new::<meter>(-2.0), Length::new::<meter>(0.0)],
+                    vector![Length::new::<meter>(-2.0), Length::new::<meter>(0.0)],
+                ],
+                1.0,
+            );
 
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -1250,13 +1606,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(90.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(90.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(90.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(90.0),
                 },
@@ -1266,34 +1625,63 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(0.63661977), Length::new::<meter>(0.63661977)],
-                vector![Length::new::<meter>(0.63661977), Length::new::<meter>(0.63661977)],
-                vector![Length::new::<meter>(0.63661977), Length::new::<meter>(0.63661977)],
-                vector![Length::new::<meter>(0.63661977), Length::new::<meter>(0.63661977)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![
+                        Length::new::<meter>(0.63661977),
+                        Length::new::<meter>(0.63661977)
+                    ],
+                    vector![
+                        Length::new::<meter>(0.63661977),
+                        Length::new::<meter>(0.63661977)
+                    ],
+                    vector![
+                        Length::new::<meter>(0.63661977),
+                        Length::new::<meter>(0.63661977)
+                    ],
+                    vector![
+                        Length::new::<meter>(0.63661977),
+                        Length::new::<meter>(0.63661977)
+                    ],
+                ],
+                1.0,
+            );
 
             println!("fom: {}", results.1);
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -1312,13 +1700,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(90.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(90.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(90.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(2.0),
                     current_angle: Angle::new::<degree>(90.0),
                 },
@@ -1328,34 +1719,63 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(1.27323954), Length::new::<meter>(1.27323954)],
-                vector![Length::new::<meter>(1.27323954), Length::new::<meter>(1.27323954)],
-                vector![Length::new::<meter>(1.27323954), Length::new::<meter>(1.27323954)],
-                vector![Length::new::<meter>(1.27323954), Length::new::<meter>(1.27323954)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![
+                        Length::new::<meter>(1.27323954),
+                        Length::new::<meter>(1.27323954)
+                    ],
+                    vector![
+                        Length::new::<meter>(1.27323954),
+                        Length::new::<meter>(1.27323954)
+                    ],
+                    vector![
+                        Length::new::<meter>(1.27323954),
+                        Length::new::<meter>(1.27323954)
+                    ],
+                    vector![
+                        Length::new::<meter>(1.27323954),
+                        Length::new::<meter>(1.27323954)
+                    ],
+                ],
+                1.0,
+            );
 
             println!("fom: {}", results.1);
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -1374,13 +1794,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(180.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(180.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(180.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(180.0),
                 },
@@ -1390,34 +1813,51 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(0.0), Length::new::<meter>(0.63661977)],
-                vector![Length::new::<meter>(0.0), Length::new::<meter>(0.63661977)],
-                vector![Length::new::<meter>(0.0), Length::new::<meter>(0.63661977)],
-                vector![Length::new::<meter>(0.0), Length::new::<meter>(0.63661977)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![Length::new::<meter>(0.0), Length::new::<meter>(0.63661977)],
+                    vector![Length::new::<meter>(0.0), Length::new::<meter>(0.63661977)],
+                    vector![Length::new::<meter>(0.0), Length::new::<meter>(0.63661977)],
+                    vector![Length::new::<meter>(0.0), Length::new::<meter>(0.63661977)],
+                ],
+                1.0,
+            );
 
             println!("fom: {}", results.1);
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -1436,13 +1876,16 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(-45.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(1.0),
                     current_angle: Angle::new::<degree>(75.0),
                 },
@@ -1452,34 +1895,60 @@ mod tests {
                 ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
-                }, ModuleOdometry {
+                },
+                ModuleOdometry {
                     total_distance_traveled: Length::new::<meter>(0.0),
                     current_angle: Angle::new::<degree>(0.0),
                 },
             ];
 
-            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+            let results = module_level_arc_odometry(
+                current_module_odometry.clone(),
+                last_frame_module_odometry.clone(),
+            );
 
-            let expected = (vec![
-                vector![Length::new::<meter>(1.0), Length::new::<meter>(0.0)],
-                vector![Length::new::<meter>(0.90031632), Length::new::<meter>(0.37292323)],
-                vector![Length::new::<meter>(0.90031632), Length::new::<meter>(-0.37292323)],
-                vector![Length::new::<meter>(0.73791298), Length::new::<meter>(0.56622054)],
-            ], 1.0);
+            let expected = (
+                vec![
+                    vector![Length::new::<meter>(1.0), Length::new::<meter>(0.0)],
+                    vector![
+                        Length::new::<meter>(0.90031632),
+                        Length::new::<meter>(0.37292323)
+                    ],
+                    vector![
+                        Length::new::<meter>(0.90031632),
+                        Length::new::<meter>(-0.37292323)
+                    ],
+                    vector![
+                        Length::new::<meter>(0.73791298),
+                        Length::new::<meter>(0.56622054)
+                    ],
+                ],
+                1.0,
+            );
 
             println!("fom: {}", results.1);
             for vec in results.0.clone() {
-                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "results: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
             println!();
             for vec in expected.0.clone() {
-                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+                println!(
+                    "expected: {:#?}, {:#?}",
+                    vec.x.get::<meter>(),
+                    vec.y.get::<meter>()
+                );
             }
 
             for (results, expected) in results.0.iter().zip(expected.0.iter()) {
@@ -1492,5 +1961,4 @@ mod tests {
             }
         }
     }
-
 }
