@@ -1,0 +1,60 @@
+        #[test]
+        fn all_t_neg45_al1() {
+            let current_module_odometry = vec![
+                ModuleOdometry {
+                    total_distance_traveled: Length::new::<meter>(1.0),
+                    current_angle: Angle::new::<degree>(-45.0),
+                }, ModuleOdometry {
+                    total_distance_traveled: Length::new::<meter>(1.0),
+                    current_angle: Angle::new::<degree>(-45.0),
+                }, ModuleOdometry {
+                    total_distance_traveled: Length::new::<meter>(1.0),
+                    current_angle: Angle::new::<degree>(-45.0),
+                }, ModuleOdometry {
+                    total_distance_traveled: Length::new::<meter>(1.0),
+                    current_angle: Angle::new::<degree>(-45.0),
+                },
+            ];
+
+            let last_frame_module_odometry = vec![
+                ModuleOdometry {
+                    total_distance_traveled: Length::new::<meter>(0.0),
+                    current_angle: Angle::new::<degree>(0.0),
+                }, ModuleOdometry {
+                    total_distance_traveled: Length::new::<meter>(0.0),
+                    current_angle: Angle::new::<degree>(0.0),
+                }, ModuleOdometry {
+                    total_distance_traveled: Length::new::<meter>(0.0),
+                    current_angle: Angle::new::<degree>(0.0),
+                }, ModuleOdometry {
+                    total_distance_traveled: Length::new::<meter>(0.0),
+                    current_angle: Angle::new::<degree>(0.0),
+                },
+            ];
+
+            let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
+
+            let expected = (vec![
+                vector![Length::new::<meter>(0.90031632), Length::new::<meter>(-0.37292323)],
+                vector![Length::new::<meter>(0.90031632), Length::new::<meter>(-0.37292323)],
+                vector![Length::new::<meter>(0.90031632), Length::new::<meter>(-0.37292323)],
+                vector![Length::new::<meter>(0.90031632), Length::new::<meter>(-0.37292323)],
+            ], 1.0);
+
+            for vec in results.0.clone() {
+                println!("results: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+            }
+            println!();
+            for vec in expected.0.clone() {
+                println!("expected: {:#?}, {:#?}", vec.x.get::<meter>(), vec.y.get::<meter>());
+            }
+
+            for (results, expected) in results.0.iter().zip(expected.0.iter()) {
+                let results_x: f64 = results.x.get::<meter>();
+                let results_y: f64 = results.y.get::<meter>();
+                let expected_x: f64 = expected.x.get::<meter>();
+                let expected_y: f64 = expected.y.get::<meter>();
+                assert_approx_eq!(f64, results_x, expected_x, epsilon = 0.001);
+                assert_approx_eq!(f64, results_y, expected_y, epsilon = 0.001);
+            }
+        }

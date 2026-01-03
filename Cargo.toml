@@ -10,3 +10,4 @@ serde_json = "1.0.145"
 tokio = "1.47.1"
 uom = "0.35.0"
 serde = { version = "1.0.228", features = ["derive"] }
+float-cmp = "0.10.0"
