@@ -187,11 +187,11 @@ fn module_level_arc_odometry(
         .collect();
 
     // DEBUG
-    let mut count = 0;
-    for vector in arc_radius.clone() {
-        println!("arc radius {}: {:?}", count, vector);
-        count += 1;
-    }
+    // let mut count = 0;
+    // for vector in arc_radius.clone() {
+    //     println!("arc radius {}: {:?}", count, vector);
+    //     count += 1;
+    // }
 
     // Calculate arc's center (represented by a mathematical vector), assuming last module is (0,0) w/ a robot-oriented coordinate system.
     // Currently, we know the arc's radius and the current and old module angles.
@@ -225,10 +225,10 @@ fn module_level_arc_odometry(
                 }
 
                 // DEBUG
-                println!(
-                    "origin_to_arc_center_angle {:?}",
-                    origin_to_arc_center_angle.get::<degree>()
-                );
+                // println!(
+                //     "origin_to_arc_center_angle {:?}",
+                //     origin_to_arc_center_angle.get::<degree>()
+                // );
 
                 // Construct the vector with trig functions
                 vector![
@@ -242,11 +242,11 @@ fn module_level_arc_odometry(
         .collect();
 
     // DEBUG
-    let mut count = 0;
-    for vector in origin_to_arc_center_vector.clone() {
-        println!("origin_to_arc_center_vector {}: {:?}", count, vector);
-        count += 1;
-    }
+    // let mut count = 0;
+    // for vector in origin_to_arc_center_vector.clone() {
+    //     println!("origin_to_arc_center_vector {}: {:?}", count, vector);
+    //     count += 1;
+    // }
 
     // Now, we have a vector that takes us from the origin to the center of the arc. If we get a vector that takes us from the center to the end point, we're good to go!
     // Luckily, we can do the exact same thing we did to figure out the vector from the origin to the center.
@@ -284,10 +284,10 @@ fn module_level_arc_odometry(
                 // }
 
                 // DEBUG
-                println!(
-                    "endpoint_to_arc_center_angle {:?}",
-                    endpoint_to_arc_center_angle.get::<degree>()
-                );
+                // println!(
+                //     "endpoint_to_arc_center_angle {:?}",
+                //     endpoint_to_arc_center_angle.get::<degree>()
+                // );
 
                 // Construct the vector with trig functions - Notice the negative signs in front, this changes the vector from
                 // Endpoint -> Center to
@@ -303,11 +303,11 @@ fn module_level_arc_odometry(
         .collect();
 
     // DEBUG
-    let mut count = 0;
-    for vector in arc_center_to_endpoint_vector.clone() {
-        println!("arc_center_to_endpoint_vector {}: {:?}", count, vector);
-        count += 1;
-    }
+    // let mut count = 0;
+    // for vector in arc_center_to_endpoint_vector.clone() {
+    //     println!("arc_center_to_endpoint_vector {}: {:?}", count, vector);
+    //     count += 1;
+    // }
 
     // Construct the final origin -> endpoint vector (finally).
     let origin_to_endpoint_vector: Vec<Vector2<Length>> = origin_to_arc_center_vector
@@ -321,11 +321,11 @@ fn module_level_arc_odometry(
         .collect();
 
     // DEBUG
-    let mut count = 0;
-    for vector in origin_to_endpoint_vector.clone() {
-        println!("origin_to_endpoint_vector {}: {:?}", count, vector);
-        count += 1;
-    }
+    // let mut count = 0;
+    // for vector in origin_to_endpoint_vector.clone() {
+    //     println!("origin_to_endpoint_vector {}: {:?}", count, vector);
+    //     count += 1;
+    // }
 
     // Figure out the delta position for all 4 modules.
     // If the delta_angle is too low the arc odometry will be very inaccurate. In this case, just assume a straight line.
