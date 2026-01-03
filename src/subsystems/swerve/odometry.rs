@@ -137,7 +137,7 @@ impl Drivetrain {
                 // Convert Vector2<Length> to Vector2<f64>
                 let mut delta_position_f64_placeholder_meters = vector![
                     robot_oriented_delta_pose.x.get::<meter>(),
-                    robot_oriented_delta_pose.x.get::<meter>()
+                    robot_oriented_delta_pose.y.get::<meter>()
                 ];
 
                 // Rotate (field orient) delta positon vector
@@ -171,7 +171,7 @@ fn module_level_arc_odometry(
 
     // Calculate arc's radius
     // We have the arc's angle (equal to change in module angle, via geometry) and the arc's length, so we can rewrite the following equation for radius
-    // Arc Length = Arc Radius * Arc Angle in Radians   ->   Arc Length in Radians = Arc Length / Arc Radius
+    // Arc Length = Arc Radius * Arc Angle in Radians   ->   Arc Radius = Arc Length / Arc Angle in Radians
     // A negative value here screws things up later, so we also add and .abs().
     let arc_radius: Vec<Length> = delta_angle
         .clone()
@@ -201,16 +201,26 @@ fn module_level_arc_odometry(
     let origin_to_arc_center_vector: Vec<Vector2<Length>> = last_frame_module_odometry
         .clone()
         .iter()
-        .zip(delta_angle.iter().zip(arc_radius.iter())) // Data structure is: Iterator<(Old ModuleOdometry, (delta_angle, arc_radius))>, that's what gets passed to the closure
-        .map(|(last_frame_module_odometry, (delta_angle, arc_radius))| {
+        .zip(delta_angle.iter().zip(arc_radius.iter()))
+        .zip(arc_length.clone().iter())// Data structure is: Iterator<(Old ModuleOdometry, (delta_angle, arc_radius))>, that's what gets passed to the closure
+        .map(|((last_frame_module_odometry, (delta_angle, arc_radius)), arc_length)| {
             // Check if center is to left or right
             let mut origin_to_arc_center_angle = last_frame_module_odometry.current_angle;
 
-            if delta_angle.get::<radian>() < 0.0 {
-                origin_to_arc_center_angle -= Angle::new::<degree>(90.0);
+            if arc_length.get::<meter>() > 0.0 {
+                if delta_angle.get::<radian>() < 0.0 {
+                    origin_to_arc_center_angle -= Angle::new::<degree>(90.0);
+                } else {
+                    origin_to_arc_center_angle += Angle::new::<degree>(90.0);
+                }
             } else {
-                origin_to_arc_center_angle += Angle::new::<degree>(90.0);
+                if delta_angle.get::<radian>() < 0.0 {
+                    origin_to_arc_center_angle += Angle::new::<degree>(90.0);
+                } else {
+                    origin_to_arc_center_angle -= Angle::new::<degree>(90.0);
+                }
             }
+
 
             // DEBUG
             println!("origin_to_arc_center_angle {:?}", origin_to_arc_center_angle.get::<degree>());
@@ -238,15 +248,33 @@ fn module_level_arc_odometry(
     let arc_center_to_endpoint_vector: Vec<Vector2<Length>> = current_module_odometry
         .clone()
         .iter()
-        .zip(delta_angle.clone().iter().zip(arc_radius.iter())) // Data structure is: Iterator<(Current ModuleOdometry, (delta_angle, arc_radius))>, that's what gets passed to the closure
-        .map(|(current_module_odometry, (delta_angle, arc_radius))| {
+        .zip(delta_angle.clone().iter().zip(arc_radius.iter()))
+        .zip(arc_length.clone().iter())// Data structure is: Iterator<(Current ModuleOdometry, (delta_angle, arc_radius))>, that's what gets passed to the closure
+        .map(|((current_module_odometry, (delta_angle, arc_radius)), arc_length)| {
             // Check if center is to left or right
             let mut endpoint_to_arc_center_angle = current_module_odometry.current_angle;
-            if delta_angle.get::<radian>() < 0.0 {
-                endpoint_to_arc_center_angle -= Angle::new::<degree>(90.0);
+
+            // CHANGED from -+ to ++
+
+            if arc_length.get::<meter>() > 0.0 {
+                if delta_angle.get::<radian>() < 0.0 {
+                    endpoint_to_arc_center_angle -= Angle::new::<degree>(90.0);
+                } else {
+                    endpoint_to_arc_center_angle += Angle::new::<degree>(90.0);
+                }
             } else {
-                endpoint_to_arc_center_angle += Angle::new::<degree>(90.0);
+                if delta_angle.get::<radian>() < 0.0 {
+                    endpoint_to_arc_center_angle += Angle::new::<degree>(90.0);
+                } else {
+                    endpoint_to_arc_center_angle -= Angle::new::<degree>(90.0);
+                }
             }
+
+            // if delta_angle.get::<radian>() < 0.0 {
+            //     endpoint_to_arc_center_angle += Angle::new::<degree>(90.0);
+            // } else {
+            //     endpoint_to_arc_center_angle += Angle::new::<degree>(90.0);
+            // }
 
             // DEBUG
             println!("endpoint_to_arc_center_angle {:?}", endpoint_to_arc_center_angle.get::<degree>());
@@ -283,8 +311,8 @@ fn module_level_arc_odometry(
 
     // DEBUG
     let mut count = 0;
-    for vector in arc_center_to_endpoint_vector.clone() {
-        println!("arc_center_to_endpoint_vector {}: {:?}", count, vector);
+    for vector in origin_to_endpoint_vector.clone() {
+        println!("origin_to_endpoint_vector {}: {:?}", count, vector);
         count += 1;
     }
 
@@ -300,19 +328,20 @@ fn module_level_arc_odometry(
         ) // Data structure: Iterator<((origin_to_arc_center_vector, delta_angle), (Current ModuleOdometry, Old ModuleOdometry))
         .map(
             |(
-                (origin_to_arc_center_vector, delta_angle),
+                (origin_to_endpoint_vector, delta_angle),
                 (current_module_odometry, last_frame_module_odometry),
             )| {
                 if delta_angle.get::<radian>().abs() < ARC_ODOMETRY_MINIMUM_DELTA_ANGLE_RADIANS
                     || delta_angle.get::<radian>().is_nan()
                 {
                     vector![
-                        current_module_odometry.total_distance_traveled
-                            - last_frame_module_odometry.total_distance_traveled,
-                        Length::new::<meter>(0.0),
+                        (current_module_odometry.total_distance_traveled
+                            - last_frame_module_odometry.total_distance_traveled) * current_module_odometry.current_angle.cos(),
+                        (current_module_odometry.total_distance_traveled
+                            - last_frame_module_odometry.total_distance_traveled) * current_module_odometry.current_angle.sin(),
                     ]
                 } else {
-                    origin_to_arc_center_vector.to_owned()
+                    origin_to_endpoint_vector.to_owned()
                 }
             },
         )
@@ -328,28 +357,7 @@ fn module_level_arc_odometry(
     // Look at graph of 1/(ax+1). A (ARC_ODOMETRY_FOM_DAMPENING) dampens higher values of x (avg. arc length), and the +1 makes sure y=1 for x=0.
     let figure_of_merit = 1.0 / ((ARC_ODOMETRY_FOM_DAMPENING) * average_arc_length_meters_as_f64 + 1.0);
 
-    // TODO: fix this
-    // Handle -arc_length. Don't ask me how.
-    let final_delta_pose: Vec<Vector2<Length>>= delta_pose
-        .clone()
-        .iter()
-        .zip(arc_length.to_owned())
-        .map( |(vec, arc_length)| {
-            if arc_length.get::<meter>() < 0.0 {
-                return vector! [
-                    -1.0 * vec.x,
-                    vec.y
-                ]
-            } else {
-                return vector! [
-                    vec.x,
-                    vec.y
-                ]
-            }
-        })
-        .collect();
-
-    (final_delta_pose, figure_of_merit)
+    (delta_pose, figure_of_merit)
 }
 
 /// ## Calculates the changes in angle and distance between the current ModuleOdometry and the ModuleOdometry from last frame.
@@ -807,10 +815,10 @@ mod tests {
             let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
 
             let expected = (vec![
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(0.37292323)],
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(0.37292323)],
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(0.37292323)],
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(0.37292323)],
+                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(-0.37292323)],
+                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(-0.37292323)],
+                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(-0.37292323)],
+                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(-0.37292323)],
             ], 1.0);
 
             println!("fom: {}", results.1);
@@ -832,6 +840,7 @@ mod tests {
             }
         }
 
+        #[test]
         fn all_tneg45_alneg1() {
             let current_module_odometry = vec![
                 ModuleOdometry {
@@ -868,10 +877,10 @@ mod tests {
             let results = module_level_arc_odometry(current_module_odometry.clone(), last_frame_module_odometry.clone());
 
             let expected = (vec![
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(-0.37292323)],
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(-0.37292323)],
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(-0.37292323)],
-                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(-0.37292323)],
+                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(0.37292323)],
+                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(0.37292323)],
+                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(0.37292323)],
+                vector![Length::new::<meter>(-0.90031632), Length::new::<meter>(0.37292323)],
             ], 1.0);
 
             for vec in results.0.clone() {
