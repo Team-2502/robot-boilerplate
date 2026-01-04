@@ -14,7 +14,7 @@ use uom::si::length::{inch, meter};
 /// last_frame_module_odometry: information about the swerve modules on the last frame update_odo was called. See the private struct ModuleOdometry for more.
 pub struct Odometry {
     pub pose_estimate: RobotPoseEstimate,
-    last_frame_module_odometry: Vec<ModuleOdometry>,
+    pub(crate) last_frame_module_odometry: Vec<ModuleOdometry>,
 }
 
 /// ## Private odometry struct that contains: <br>
@@ -22,7 +22,7 @@ pub struct Odometry {
 /// -module's current angle
 // Clone lets us use .clone, Debug and PartialEq lets us use assert_eq!() in tests.
 #[derive(Clone, Debug, PartialEq)]
-struct ModuleOdometry {
+pub struct ModuleOdometry {
     pub total_distance_traveled: Length,
     pub current_angle: Angle,
 }
@@ -69,7 +69,7 @@ impl Odometry {
 impl Drivetrain {
     /// ## Calculates module odometry.
     /// Note: ModuleOdometry is not an Angle and Speed. See ModuleOdometry struct for more.
-    fn get_module_odometry(&self) -> Vec<ModuleOdometry> {
+    pub(crate) fn get_module_odometry(&self) -> Vec<ModuleOdometry> {
         let mut module_odometry = Vec::new();
 
         for (drive, turn) in [

@@ -223,4 +223,54 @@ impl Drivetrain {
 
         self.set_next_frame_module_odometry();
     }
+
+    pub fn update_localization(&mut self) -> RobotPoseEstimate {
+        // set fused pose to current odo as a base
+        let mut fused_pose = self.odometry.pose_estimate.clone();
+
+        // attempt to get vision pose
+        if let Some(vision_xy) = self.limelight.get_position_from_tag_2d() {
+            // get both of the figures of merit
+            let vision_fom = self.limelight.get_vision_fom();
+            let odo_fom = fused_pose.fom;
+
+            // get the total fom should not be >1
+            let total_weight = odo_fom + vision_fom;
+
+            // fuse the x cords based on fom
+            let fused_x = (fused_pose.x.get::<meter>() * odo_fom
+                + vision_xy.x.get::<meter>() * vision_fom)
+                / total_weight;
+
+            // fuse the y cords based on fom
+            let fused_y = (fused_pose.y.get::<meter>() * odo_fom
+                + vision_xy.y.get::<meter>() * vision_fom)
+                / total_weight;
+
+            // fuse the yaws to wrap 0-360
+            let odo_yaw = fused_pose.angle.get::<radian>();
+            let vis_yaw = self.limelight.get_yaw().get::<radian>();
+
+            let sin_sum = odo_yaw.sin() * odo_fom + vis_yaw.sin() * vision_fom;
+            let cos_sum = odo_yaw.cos() * odo_fom + vis_yaw.cos() * vision_fom;
+
+            let mut fused_yaw = sin_sum.atan2(cos_sum);
+
+            if fused_yaw < 0. {
+                fused_yaw += std::f64::consts::PI * 2.
+            }
+
+            //
+            fused_pose.x = uom::si::f64::Length::new::<meter>(fused_x);
+            fused_pose.y = uom::si::f64::Length::new::<meter>(fused_y);
+            fused_pose.angle = uom::si::f64::Angle::new::<radian>(fused_yaw);
+
+            // update fom to reflect fused confidence
+            fused_pose.fom = (odo_fom * vision_fom) / (odo_fom + vision_fom);
+        }
+
+        // set odo to fused fom
+        self.set_pose_estimate(fused_pose.clone());
+        RobotPoseEstimate::new(fused_pose.fom, fused_pose.x, fused_pose.y, fused_pose.angle)
+    }
 }

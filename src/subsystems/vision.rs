@@ -19,6 +19,7 @@ use crate::constants::vision::{
 //not implemented yet
 //use crate::swerve::Odometry::PoseEstimate;
 use tokio::time::Instant;
+use crate::constants::drivetrain::ARC_ODOMETRY_FOM_DAMPENING;
 
 #[derive(Clone)]
 /// The vision struct containing
@@ -251,12 +252,16 @@ impl Vision {
         }
     }
 
-    /// gets the fom of the limelight returns it as a length
-    pub fn get_figure_of_merit(&self) -> Length {
+    /// gets the fom of the limelight returns it as a f64 the higher the more confident
+    pub fn get_vision_fom(&self) -> f64 {
         let dt = Instant::now() - self.last_update_time;
+
+        // get the angular drift as the drivetrain moves
         let angular_velocity_rad_per_sec = (self.drivetrain_angle.get::<radian>()
             - self.last_drivetrain_angle.get::<radian>())
             / dt.as_secs_f64();
+
+        // get the movement of the robot since the last frame
         let robot_position_meters: Vector2<f64> = Vector2::new(
             self.robot_position.x.get::<meter>(),
             self.robot_position.y.get::<meter>(),
@@ -265,15 +270,18 @@ impl Vision {
             self.last_robot_position.x.get::<meter>(),
             self.last_robot_position.y.get::<meter>(),
         );
+
+        // get the linear velocity of the robot
         let linear_velocity_meters_per_sec =
             (robot_position_meters - last_robot_position_meters).magnitude() / dt.as_secs_f64();
 
-        let mut fom_meters =
-            LIMELIGHT_INACCURACY_PER_ANGULAR_VELOCITY * angular_velocity_rad_per_sec.abs();
-        fom_meters +=
-            LIMELIGHT_INACCURACY_PER_LINEAR_VELOCITY * linear_velocity_meters_per_sec.abs();
-        fom_meters += LIMELIGHT_BASE_FOM;
-        Length::new::<meter>(fom_meters)
+        // total uncertainty the higher the more expected error
+        let uncertainty = LIMELIGHT_INACCURACY_PER_ANGULAR_VELOCITY * angular_velocity_rad_per_sec.abs()
+            + LIMELIGHT_INACCURACY_PER_LINEAR_VELOCITY * linear_velocity_meters_per_sec.abs()
+            + LIMELIGHT_BASE_FOM;
+
+        // steal dampening from odo fom and make higher is better to match them up
+        1.0 / (ARC_ODOMETRY_FOM_DAMPENING * uncertainty + 1.0)
     }
 
     /// returns the yaw in radians
