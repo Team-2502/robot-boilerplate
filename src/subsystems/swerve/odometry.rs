@@ -38,6 +38,17 @@ pub struct RobotPoseEstimate {
     angle: Angle,
 }
 
+impl RobotPoseEstimate {
+    pub fn new(fom: f64, x: Length, y: Length, angle: Angle) -> RobotPoseEstimate {
+        Self {
+            fom,
+            x,
+            y,
+            angle,
+        }
+    }
+}
+
 impl Odometry {
     /// ## Makes a new Odometry system.
     /// The parameter RobotPoseEstimate will be where the robot starts from.
