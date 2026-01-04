@@ -32,10 +32,10 @@ struct ModuleOdometry {
 /// fom: figure of merit, how confident the robot is in its pose estimate.
 #[derive(Clone)]
 pub struct RobotPoseEstimate {
-    fom: f64,
-    x: Length,
-    y: Length,
-    angle: Angle,
+    pub(crate) fom: f64,
+    pub(crate) x: Length,
+    pub(crate) y: Length,
+    pub(crate) angle: Angle,
 }
 
 impl RobotPoseEstimate {

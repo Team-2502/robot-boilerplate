@@ -1,3 +1,4 @@
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use crate::constants::config;
 use crate::constants::drivetrain::SWERVE_TURN_RATIO;
 use crate::constants::robotmap::drivetrain_map::{
@@ -8,8 +9,10 @@ use crate::subsystems::swerve::kinematics::Kinematics;
 use crate::subsystems::swerve::odometry::{Odometry, RobotPoseEstimate};
 use frcrs::ctre::{CanCoder, ControlMode, Pigeon, Talon};
 use nalgebra::{Rotation2, Vector2, vector};
-use uom::si::angle::{degree, revolution};
+use uom::si::angle::{degree, radian, revolution};
 use uom::si::f64::Angle;
+use uom::si::length::meter;
+use crate::subsystems::vision::Vision;
 
 /// Drivetrain struct.
 /// kinematics field interfaces with inverse kinematics functions.
@@ -18,6 +21,8 @@ pub struct Drivetrain {
     kinematics: Kinematics,
     pub(in crate::subsystems::swerve) odometry: Odometry,
     pub(in crate::subsystems::swerve) gyro: Pigeon,
+
+    limelight: Vision,
 
     motor_encoder_offsets: [Angle; 4],
 
@@ -48,6 +53,11 @@ impl Drivetrain {
         let br_encoder = CanCoder::new(BR_ENCODER_ID, DRIVETRAIN_CANBUS);
         let fr_encoder = CanCoder::new(FR_ENCODER_ID, DRIVETRAIN_CANBUS);
 
+        let limelight = Vision::new(SocketAddr::new(
+            IpAddr::V4(Ipv4Addr::new(10, 25, 2, 12)),
+            5807,
+        ));
+
         // .get_absolute returns the CANCoder's rotation from -1 to 1
         let motor_encoder_offsets = [
             Angle::new::<revolution>(fl_encoder.get_absolute()),
@@ -60,6 +70,9 @@ impl Drivetrain {
             kinematics: Kinematics::new(),
             odometry: Odometry::new(starting_pose),
             gyro: Pigeon::new(GYRO_ID, DRIVETRAIN_CANBUS),
+
+            limelight,
+
             motor_encoder_offsets,
 
             fl_encoder,

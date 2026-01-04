@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::net::SocketAddr;
 use crate::constants::vision;
 use frcrs::limelight::{Limelight, LimelightResults};
 use nalgebra::{Quaternion, Rotation2, Vector2, Vector3};
@@ -48,10 +50,28 @@ pub struct FieldPosition {
 }
 
 impl Vision {
+    pub fn new(addr: SocketAddr) -> Self {
+        let tagmap = File::open("/home/lvuser/tagmap.json").unwrap();
+        let tag_values: Value = serde_json::from_reader(tagmap).unwrap();
+        let limelight = Limelight::new(addr);
+
+        Self {
+            tag_map_values: tag_values,
+            limelight,
+            results: LimelightResults::default(),
+            last_results: LimelightResults::default(),
+            saved_id: 0,
+            drivetrain_angle: Angle::new::<degree>(0.),
+            last_drivetrain_angle: Angle::new::<degree>(0.),
+            last_update_time: Instant::now(),
+            robot_position: Vector2::new(Length::new::<meter>(0.), Length::new::<meter>(0.)),
+            last_robot_position: Vector2::new(Length::new::<meter>(0.), Length::new::<meter>(0.)),
+        }
+    }
     /// Updates the results from the limelight
     ///
     /// returns nothing, but updates vision struct values
-    pub async fn update(&mut self, dt_angle: Angle, robot_position: Vector2<Length>) {
+    pub async fn update(&mut self, drivetrain_angle: Angle, robot_position: Vector2<Length>) {
         self.last_results = self.results.clone();
         self.last_robot_position = self.robot_position;
         self.robot_position = robot_position;
@@ -64,7 +84,7 @@ impl Vision {
         }
 
         self.last_drivetrain_angle = self.drivetrain_angle;
-        self.drivetrain_angle = dt_angle;
+        self.drivetrain_angle = drivetrain_angle;
         self.last_update_time = Instant::now();
 
         if !self.results.Fiducial.is_empty()
@@ -230,19 +250,6 @@ impl Vision {
             Some(pose)
         }
     }
-
-    /// gets the botpose using fom returns as a PoseEstimate
-    //not implemented yet
-    // pub fn get_pose_estimate_orb(&self) -> Option<PoseEstimate> {
-    //     if let Some(pose) = self.get_botpose_orb() {
-    //         Some(PoseEstimate {
-    //             position: pose,
-    //             figure_of_merit: self.get_figure_of_merit(),
-    //         })
-    //     } else {
-    //         None
-    //     }
-    // }
 
     /// gets the fom of the limelight returns it as a length
     pub fn get_figure_of_merit(&self) -> Length {
