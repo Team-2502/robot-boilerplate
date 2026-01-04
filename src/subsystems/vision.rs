@@ -321,4 +321,85 @@ impl Vision {
         // multiply to get the final confidence
         distance_weight * angle_weight
     }
+
+    /// ## fuses the values of 2 limelights using a weighted average and returns the best fused coordinates
+    /// ## returns
+    /// - fused x
+    /// - fused y
+    /// - fused yaw (radians)
+    pub fn fuse_limelights(
+        ll_1: &Vision,
+        ll_2: &Vision,
+    ) -> Option<Vector3<f64>> {
+        // get positions and weights for both limelights
+        let pose_1 = ll_1.get_botpose_orb();
+        let pose_2 = ll_2.get_botpose_orb();
+
+        let yaw_1 = ll_1.get_yaw().get::<radian>();
+        let yaw_2 = ll_2.get_yaw().get::<radian>();
+
+        let weight_1 = ll_1.vision_weight();
+        let weight_2 = ll_2.vision_weight();
+
+        // if neither see a tag return nothing
+        if weight_1 <= 0. && weight_2 <= 0. {
+            return None;
+        }
+
+        // if only limelight 1 sees a just return that
+        if weight_1 > 0. && pose_1.is_some() && weight_2 <= 0. {
+            let p = pose_1?;
+            return Some(Vector3::new(
+                p.x.get::<meter>(),
+                p.y.get::<meter>(),
+                yaw_1,
+            ));
+        }
+
+        // if only limelight 2 sees a just return that
+        if weight_2 > 0. && pose_2.is_some() && weight_1 <= 0. {
+            let p = pose_2?;
+            return Some(Vector3::new(
+                p.x.get::<meter>(),
+                p.y.get::<meter>(),
+                yaw_2,
+            ));
+        }
+
+        // double check poses contain values return none if not
+        let pose_1 = pose_1?;
+        let pose_2 = pose_2?;
+
+        // get the sum of the weights
+        let weight_sum = weight_1 + weight_2;
+
+        // fuse our x and y using a weighted average
+        let fused_x =
+            (pose_1.x.get::<meter>() * weight_1 + pose_2.x.get::<meter>() * weight_2)
+                / weight_sum;
+
+        let fused_y =
+            (pose_1.y.get::<meter>() * weight_1 + pose_2.y.get::<meter>() * weight_2)
+                / weight_sum;
+
+        // fuse yaw using wieghted sin/cos to handle 0–360 wraparound
+        let sin_sum =
+            yaw_1.sin() * weight_1 +
+                yaw_2.sin() * weight_2;
+
+        let cos_sum =
+            yaw_1.cos() * weight_1 +
+                yaw_2.cos() * weight_2;
+
+        // get the final fused value for yaw
+        let mut fused_yaw = sin_sum.atan2(cos_sum);
+
+        // convert it from -pi - pi to 0 - 2pi
+        if fused_yaw < 0. {
+            fused_yaw += std::f64::consts::PI * 2.
+        }
+
+        // return the x, y and yaw
+        Some(Vector3::new(fused_x, fused_y, fused_yaw))
+    }
 }
