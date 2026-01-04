@@ -14,7 +14,7 @@ use uom::si::length::{inch, meter};
 /// last_frame_module_odometry: information about the swerve modules on the last frame update_odo was called. See the private struct ModuleOdometry for more.
 pub struct Odometry {
     pub pose_estimate: RobotPoseEstimate,
-    pub(crate) last_frame_module_odometry: Vec<ModuleOdometry>,
+    last_frame_module_odometry: Vec<ModuleOdometry>,
 }
 
 /// ## Private odometry struct that contains: <br>
@@ -32,10 +32,10 @@ pub struct ModuleOdometry {
 /// fom: figure of merit, how confident the robot is in its pose estimate.
 #[derive(Clone)]
 pub struct RobotPoseEstimate {
-    pub(crate) fom: f64,
-    pub(crate) x: Length,
-    pub(crate) y: Length,
-    pub(crate) angle: Angle,
+    pub fom: f64,
+    pub x: Length,
+    pub y: Length,
+    pub angle: Angle,
 }
 
 impl RobotPoseEstimate {

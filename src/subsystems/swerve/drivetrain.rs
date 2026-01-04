@@ -209,9 +209,6 @@ impl Drivetrain {
     /// Control the drivetrain.
     /// x, y, and rotation are driverstation inputs.
     pub fn control_drivetrain(&mut self, x: f64, y: f64, rotation: f64) {
-        // Updates drivetrain.odometry.pose_estimate.
-        self.update_pose();
-
         let target_transformation = match config::FIELD_ORIENTED {
             true => self.field_orientate(vector![x, y]),
             false => vector![x, y],
@@ -224,13 +221,18 @@ impl Drivetrain {
         self.set_next_frame_module_odometry();
     }
 
+    /// #updates the localized cords using odo and vision
+    /// returns a RobotPoseEstimate and sets the odo pose to the best cords
     pub fn update_localization(&mut self) -> RobotPoseEstimate {
+        // Updates drivetrain.odometry.pose_estimate.
+        self.update_pose();
+
         // set fused pose to current odo as a base
-        let mut fused_pose = self.odometry.pose_estimate.clone();
+        let mut fused_pose = self.get_pose_estimate();
 
         // attempt to get vision pose
-        if let Some(vision_xy) = self.limelight.get_position_from_tag_2d() {
-            // get both of the figures of merit
+        if let Some(vision_xy) = self.limelight.get_botpose_orb() {
+            // get both of the figures of merit higher is better
             let vision_fom = self.limelight.get_vision_fom();
             let odo_fom = fused_pose.fom;
 
@@ -271,6 +273,7 @@ impl Drivetrain {
 
         // set odo to fused fom
         self.set_pose_estimate(fused_pose.clone());
+        self.set_next_frame_module_odometry();
         RobotPoseEstimate::new(fused_pose.fom, fused_pose.x, fused_pose.y, fused_pose.angle)
     }
 }

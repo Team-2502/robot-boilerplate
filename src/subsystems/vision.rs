@@ -280,8 +280,8 @@ impl Vision {
             + LIMELIGHT_INACCURACY_PER_LINEAR_VELOCITY * linear_velocity_meters_per_sec.abs()
             + LIMELIGHT_BASE_FOM;
 
-        // steal dampening from odo fom and make higher is better to match them up
-        1.0 / (ARC_ODOMETRY_FOM_DAMPENING * uncertainty + 1.0)
+        // steal dampening from odo fom and make higher is better to match them up and clamp it to be 0 - 1
+        1.0 / (uncertainty + 1.0).clamp(0.0, 1.0)
     }
 
     /// returns the yaw in radians
