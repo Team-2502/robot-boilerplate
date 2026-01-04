@@ -40,12 +40,7 @@ pub struct RobotPoseEstimate {
 
 impl RobotPoseEstimate {
     pub fn new(fom: f64, x: Length, y: Length, angle: Angle) -> RobotPoseEstimate {
-        Self {
-            fom,
-            x,
-            y,
-            angle,
-        }
+        Self { fom, x, y, angle }
     }
 }
 

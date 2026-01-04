@@ -4,15 +4,15 @@ use frcrs::input::RobotState;
 use frcrs::networktables::NetworkTable;
 use frcrs::telemetry::Telemetry;
 use frcrs::{init_hal, observe_user_program_starting, refresh_data};
-use robot_boilerplate::auto::auto::Auto;
 use robot_boilerplate::Ferris;
+use robot_boilerplate::auto::auto::Auto;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::SystemTime;
 use tokio::task;
-use tokio::task::{spawn_local, AbortHandle};
+use tokio::task::{AbortHandle, spawn_local};
 use tokio::time::sleep;
 use tokio::time::{Duration, Instant};
 
