@@ -4,8 +4,8 @@ use frcrs::input::RobotState;
 use frcrs::networktables::NetworkTable;
 use frcrs::telemetry::Telemetry;
 use frcrs::{init_hal, observe_user_program_starting, refresh_data};
-use robot_boilerplate::Ferris;
 use robot_boilerplate::auto::auto::Auto;
+use robot_boilerplate::{Ferris, teleop};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -102,7 +102,7 @@ fn main() {
                 // if enabled and in teleop run the teleop function
                 if let Ok(mut robot) = ferris.try_borrow_mut() {
                     robot.dt = dt;
-                    //teleop(&mut robot).await;
+                    teleop(&mut robot).await;
                 }
             }
 
@@ -113,8 +113,8 @@ fn main() {
 
                     // Now access drivetrain
                     if let Ok(mut drivetrain) = ferris_mut.drivetrain.try_borrow_mut() {
-                        //drivetrain.update_limelight().await;
-                        //drivetrain.post_odo().await;
+                        drivetrain.update_limelight().await;
+                        drivetrain.update_localization().await;
                     }
                 }
 

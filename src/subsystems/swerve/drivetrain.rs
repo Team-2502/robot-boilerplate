@@ -1,18 +1,20 @@
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use crate::constants::config;
-use crate::constants::drivetrain::SWERVE_TURN_RATIO;
+use crate::constants::drivetrain::{DRIVETRAIN_ERROR_THRESHOLD, SWERVE_TURN_RATIO};
 use crate::constants::robotmap::drivetrain_map::{
     BL_DRIVE_ID, BL_ENCODER_ID, BL_TURN_ID, BR_DRIVE_ID, BR_ENCODER_ID, DRIVETRAIN_CANBUS,
     FL_DRIVE_ID, FL_ENCODER_ID, FL_TURN_ID, FR_DRIVE_ID, FR_ENCODER_ID, FR_TURN_ID, GYRO_ID,
 };
 use crate::subsystems::swerve::kinematics::Kinematics;
 use crate::subsystems::swerve::odometry::{Odometry, RobotPoseEstimate};
+use crate::subsystems::vision::Vision;
 use frcrs::ctre::{CanCoder, ControlMode, Pigeon, Talon};
 use nalgebra::{Rotation2, Vector2, vector};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::time::Duration;
+use tokio::time::timeout;
 use uom::si::angle::{degree, radian, revolution};
 use uom::si::f64::Angle;
 use uom::si::length::meter;
-use crate::subsystems::vision::Vision;
 
 /// Drivetrain struct.
 /// kinematics field interfaces with inverse kinematics functions.
@@ -108,6 +110,17 @@ impl Drivetrain {
         self.fr_turn.stop();
     }
 
+    /// updates the limelight values and passes in drivetrain data for fom
+    pub async fn update_limelight(&mut self) {
+        let pose = self.get_pose_estimate();
+        let _ = timeout(
+            Duration::from_millis(10),
+            self.limelight
+                .update(pose.angle, Vector2::new(pose.x, pose.y)),
+        )
+        .await;
+    }
+
     /// ## Gets the pose estimate.
     /// Note: FOM only applies to x and y. <br>
     /// Note: ONLY CALL THIS AFTER CONTROL_DRIVETRAIN HAS BEEN CALLED. If you call this before, the values will not be accurate.
@@ -176,7 +189,7 @@ impl Drivetrain {
     }
 
     /// ## Sets drivetrain motor speeds.
-    pub fn set_speed(&mut self, targets: Vec<(f64, Angle)>) {
+    pub fn set_speeds(&mut self, targets: Vec<(f64, Angle)>) {
         // set drive motor speeds based on targets
         self.fl_drive.set(ControlMode::Percent, targets[0].0);
         self.bl_drive.set(ControlMode::Percent, targets[1].0);
@@ -216,14 +229,12 @@ impl Drivetrain {
 
         let targets = self.kinematics.get_targets(target_transformation, rotation);
         let optimized_targets = self.optimize_setpoints(targets);
-        self.set_speed(optimized_targets);
-
-        self.set_next_frame_module_odometry();
+        self.set_speeds(optimized_targets);
     }
 
     /// #updates the localized cords using odo and vision
     /// returns a RobotPoseEstimate and sets the odo pose to the best cords
-    pub fn update_localization(&mut self) -> RobotPoseEstimate {
+    pub async fn update_localization(&mut self) -> RobotPoseEstimate {
         // Updates drivetrain.odometry.pose_estimate.
         self.update_pose();
 

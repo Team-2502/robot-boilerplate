@@ -1,9 +1,9 @@
-use std::fs::File;
-use std::net::SocketAddr;
 use crate::constants::vision;
 use frcrs::limelight::{Limelight, LimelightResults};
 use nalgebra::{Quaternion, Rotation2, Vector2, Vector3};
 use serde_json::Value;
+use std::fs::File;
+use std::net::SocketAddr;
 use uom::num::FromPrimitive;
 use uom::si::length::inch;
 use uom::si::{
@@ -18,8 +18,8 @@ use crate::constants::vision::{
 };
 //not implemented yet
 //use crate::swerve::Odometry::PoseEstimate;
-use tokio::time::Instant;
 use crate::constants::drivetrain::ARC_ODOMETRY_FOM_DAMPENING;
+use tokio::time::Instant;
 
 #[derive(Clone)]
 /// The vision struct containing
@@ -276,7 +276,8 @@ impl Vision {
             (robot_position_meters - last_robot_position_meters).magnitude() / dt.as_secs_f64();
 
         // total uncertainty the higher the more expected error
-        let uncertainty = LIMELIGHT_INACCURACY_PER_ANGULAR_VELOCITY * angular_velocity_rad_per_sec.abs()
+        let uncertainty = LIMELIGHT_INACCURACY_PER_ANGULAR_VELOCITY
+            * angular_velocity_rad_per_sec.abs()
             + LIMELIGHT_INACCURACY_PER_LINEAR_VELOCITY * linear_velocity_meters_per_sec.abs()
             + LIMELIGHT_BASE_FOM;
 
@@ -342,10 +343,7 @@ impl Vision {
     /// - fused x
     /// - fused y
     /// - fused yaw (radians)
-    pub fn fuse_limelights(
-        ll_1: &Vision,
-        ll_2: &Vision,
-    ) -> Option<Vector3<f64>> {
+    pub fn fuse_limelights(ll_1: &Vision, ll_2: &Vision) -> Option<Vector3<f64>> {
         // get positions and weights for both limelights
         let pose_1 = ll_1.get_botpose_orb();
         let pose_2 = ll_2.get_botpose_orb();
@@ -364,21 +362,13 @@ impl Vision {
         // if only limelight 1 sees a just return that
         if weight_1 > 0. && pose_1.is_some() && weight_2 <= 0. {
             let p = pose_1?;
-            return Some(Vector3::new(
-                p.x.get::<meter>(),
-                p.y.get::<meter>(),
-                yaw_1,
-            ));
+            return Some(Vector3::new(p.x.get::<meter>(), p.y.get::<meter>(), yaw_1));
         }
 
         // if only limelight 2 sees a just return that
         if weight_2 > 0. && pose_2.is_some() && weight_1 <= 0. {
             let p = pose_2?;
-            return Some(Vector3::new(
-                p.x.get::<meter>(),
-                p.y.get::<meter>(),
-                yaw_2,
-            ));
+            return Some(Vector3::new(p.x.get::<meter>(), p.y.get::<meter>(), yaw_2));
         }
 
         // double check poses contain values return none if not
@@ -390,21 +380,15 @@ impl Vision {
 
         // fuse our x and y using a weighted average
         let fused_x =
-            (pose_1.x.get::<meter>() * weight_1 + pose_2.x.get::<meter>() * weight_2)
-                / weight_sum;
+            (pose_1.x.get::<meter>() * weight_1 + pose_2.x.get::<meter>() * weight_2) / weight_sum;
 
         let fused_y =
-            (pose_1.y.get::<meter>() * weight_1 + pose_2.y.get::<meter>() * weight_2)
-                / weight_sum;
+            (pose_1.y.get::<meter>() * weight_1 + pose_2.y.get::<meter>() * weight_2) / weight_sum;
 
         // fuse yaw using wieghted sin/cos to handle 0–360 wraparound
-        let sin_sum =
-            yaw_1.sin() * weight_1 +
-                yaw_2.sin() * weight_2;
+        let sin_sum = yaw_1.sin() * weight_1 + yaw_2.sin() * weight_2;
 
-        let cos_sum =
-            yaw_1.cos() * weight_1 +
-                yaw_2.cos() * weight_2;
+        let cos_sum = yaw_1.cos() * weight_1 + yaw_2.cos() * weight_2;
 
         // get the final fused value for yaw
         let mut fused_yaw = sin_sum.atan2(cos_sum);

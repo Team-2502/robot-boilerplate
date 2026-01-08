@@ -5,6 +5,8 @@ pub mod config {
     pub const WHEELBASE_LENGTH_INCHES: f64 = 10.0;
 
     pub const FIELD_ORIENTED: bool = true;
+    pub const HALF_FIELD_WIDTH_METERS: f64 = 17.55 / 2.;
+    pub const HALF_FIELD_LENGTH_METERS: f64 = 8.05 / 2.;
 }
 
 pub mod robotmap {
@@ -69,6 +71,21 @@ pub mod drivetrain {
     pub const SWERVE_WHEEL_DIAMETER_INCHES: f64 = 4.0;
     pub const ARC_ODOMETRY_MINIMUM_DELTA_ANGLE_RADIANS: f64 = 0.00001;
     pub const ARC_ODOMETRY_FOM_DAMPENING: f64 = 0.02; // How much to distrust higher values for arc radius.
+    pub const DRIVETRAIN_ERROR_THRESHOLD: f64 = 0.5;
+}
+
+pub mod auto {
+    pub const SWERVE_TURN_KP: f64 = 0.6;
+
+    pub const SWERVE_DRIVE_KP: f64 = 0.7;
+    pub const SWERVE_DRIVE_KI: f64 = 2.;
+    pub const SWERVE_DRIVE_KD: f64 = 50.;
+    pub const SWERVE_DRIVE_KF: f64 = 0.; // Velocity ff
+    pub const SWERVE_DRIVE_KFA: f64 = 0.; // Acceleration ff
+
+    pub const SWERVE_DRIVE_MAX_ERR: f64 = 0.15;
+    pub const SWERVE_DRIVE_SUGGESTION_ERR: f64 = 0.35;
+    pub const SWERVE_DRIVE_IE: f64 = 0.175; //0.175; // integral enable
 }
 
 pub mod joystick_map {
